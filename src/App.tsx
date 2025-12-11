@@ -11,6 +11,9 @@ import NewCheck from "./pages/NewCheck";
 import Results from "./pages/Results";
 import History from "./pages/History";
 import ManageRules from "./pages/admin/ManageRules";
+import ManageStates from "./pages/admin/ManageStates";
+import RuleUpdates from "./pages/admin/RuleUpdates";
+import AuditLog from "./pages/admin/AuditLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +42,9 @@ function AppRoutes() {
       <Route path="/results/:id" element={<ProtectedRoute><Results /></ProtectedRoute>} />
       <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
       <Route path="/admin/rules" element={<ProtectedRoute><ManageRules /></ProtectedRoute>} />
+      <Route path="/admin/states" element={<ProtectedRoute><ManageStates /></ProtectedRoute>} />
+      <Route path="/admin/rule-updates" element={<ProtectedRoute><RuleUpdates /></ProtectedRoute>} />
+      <Route path="/admin/audit-log" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
