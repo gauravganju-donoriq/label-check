@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, Plus, Edit, Trash2, ExternalLink, Loader2, Globe } from 'lucide-react';
+import { AlertCircle, Plus, Edit, Trash2, ExternalLink, Loader2, Globe, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface State {
@@ -34,6 +35,16 @@ interface RegulatorySource {
   is_active: boolean;
 }
 
+interface ScrapeResult {
+  sourceName: string;
+  url: string;
+  success: boolean;
+  markdown?: string;
+  metadata?: { title?: string; description?: string; statusCode?: number };
+  contentLength: number;
+  error?: string;
+}
+
 export default function ManageStates() {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
@@ -47,6 +58,9 @@ export default function ManageStates() {
   const [sourceForm, setSourceForm] = useState({ source_name: '', source_url: '', check_frequency_days: 7, is_active: true });
   const [editingSource, setEditingSource] = useState<RegulatorySource | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [scrapingSourceId, setScrapingSourceId] = useState<string | null>(null);
+  const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null);
+  const [showScrapeDialog, setShowScrapeDialog] = useState(false);
 
   useEffect(() => {
     fetchStates();
@@ -230,6 +244,53 @@ export default function ManageStates() {
     return sources.filter(s => s.state_id === stateId);
   }
 
+  async function scrapeSource(source: RegulatorySource) {
+    setScrapingSourceId(source.id);
+    setScrapeResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('firecrawl-scrape', {
+        body: { url: source.source_url, options: { formats: ['markdown'] } }
+      });
+
+      if (error) throw error;
+
+      const markdown = data.data?.markdown || data.markdown;
+      const metadata = data.data?.metadata || data.metadata;
+
+      setScrapeResult({
+        sourceName: source.source_name,
+        url: source.source_url,
+        success: data.success,
+        markdown,
+        metadata,
+        contentLength: markdown?.length || 0,
+        error: data.error
+      });
+      setShowScrapeDialog(true);
+
+      await supabase
+        .from('regulatory_sources')
+        .update({ last_checked: new Date().toISOString() })
+        .eq('id', source.id);
+
+      fetchSources();
+      toast({ title: 'Scrape Complete', description: `Successfully scraped ${source.source_name}` });
+    } catch (error) {
+      setScrapeResult({
+        sourceName: source.source_name,
+        url: source.source_url,
+        success: false,
+        contentLength: 0,
+        error: error instanceof Error ? error.message : 'Failed to scrape'
+      });
+      setShowScrapeDialog(true);
+      toast({ title: 'Scrape Failed', description: error instanceof Error ? error.message : 'Failed to scrape', variant: 'destructive' });
+    } finally {
+      setScrapingSourceId(null);
+    }
+  }
+
   if (!isAdmin) {
     return (
       <AppLayout>
@@ -324,6 +385,19 @@ export default function ManageStates() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => scrapeSource(source)}
+                                disabled={scrapingSourceId === source.id}
+                                title="Scrape Now"
+                              >
+                                {scrapingSourceId === source.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-4 h-4" />
+                                )}
+                              </Button>
                               <Button variant="ghost" size="sm" onClick={() => openEditSource(source)}>
                                 <Edit className="w-4 h-4" />
                               </Button>
@@ -438,6 +512,64 @@ export default function ManageStates() {
               {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingSource ? 'Update' : 'Add'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Scrape Results Dialog */}
+      <Dialog open={showScrapeDialog} onOpenChange={setShowScrapeDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Scrape Results</DialogTitle>
+            <DialogDescription>
+              {scrapeResult?.sourceName} - {scrapeResult?.url}
+            </DialogDescription>
+          </DialogHeader>
+          {scrapeResult && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Badge variant={scrapeResult.success ? 'default' : 'destructive'}>
+                  {scrapeResult.success ? 'Success' : 'Failed'}
+                </Badge>
+                {scrapeResult.success && (
+                  <span className="text-sm text-muted-foreground">
+                    {scrapeResult.contentLength.toLocaleString()} characters scraped
+                  </span>
+                )}
+              </div>
+
+              {scrapeResult.error && (
+                <div className="p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+                  {scrapeResult.error}
+                </div>
+              )}
+
+              {scrapeResult.metadata && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Metadata</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    {scrapeResult.metadata.title && <p>Title: {scrapeResult.metadata.title}</p>}
+                    {scrapeResult.metadata.description && <p>Description: {scrapeResult.metadata.description}</p>}
+                    {scrapeResult.metadata.statusCode && <p>Status: {scrapeResult.metadata.statusCode}</p>}
+                  </div>
+                </div>
+              )}
+
+              {scrapeResult.markdown && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Content Preview</p>
+                  <ScrollArea className="h-64 rounded-md border p-3">
+                    <pre className="text-xs whitespace-pre-wrap font-mono text-muted-foreground">
+                      {scrapeResult.markdown.slice(0, 3000)}
+                      {scrapeResult.markdown.length > 3000 && '\n\n... (truncated)'}
+                    </pre>
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setShowScrapeDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
