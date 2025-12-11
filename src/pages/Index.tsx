@@ -6,16 +6,16 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b-2 border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b border-border">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary flex items-center justify-center">
-              <Shield className="w-6 h-6 text-primary-foreground" />
+            <div className="w-9 h-9 bg-primary rounded-md flex items-center justify-center">
+              <Shield className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-xl">CannLabel Compliance</span>
+            <span className="font-semibold text-lg">CannLabel Compliance</span>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" asChild>
+            <Button variant="ghost" asChild>
               <Link to="/auth">Sign In</Link>
             </Button>
             <Button asChild>
@@ -26,22 +26,22 @@ export default function Index() {
       </header>
 
       {/* Hero */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <div className="inline-block px-4 py-1 border-2 border-border bg-secondary text-sm font-medium mb-6">
+      <section className="container mx-auto px-6 py-20 text-center">
+        <div className="inline-block px-4 py-1.5 rounded-full border border-border bg-secondary text-sm font-medium mb-6">
           Montana Compliance Ready
         </div>
-        <h1 className="text-5xl font-bold mb-6 max-w-3xl mx-auto leading-tight">
+        <h1 className="text-4xl md:text-5xl font-semibold mb-6 max-w-3xl mx-auto leading-tight text-foreground">
           AI-Powered Cannabis Label Compliance Validation
         </h1>
-        <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+        <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
           Validate your cannabis product labels against state regulations before submission. 
           Reduce rejections, save time, and ensure compliance with multimodal AI analysis.
         </p>
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center flex-wrap">
           <Button size="lg" asChild>
             <Link to="/auth">
               Start Free Compliance Check
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
@@ -51,118 +51,72 @@ export default function Index() {
       </section>
 
       {/* How It Works */}
-      <section className="bg-secondary border-y-2 border-border py-16">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+      <section className="bg-secondary/50 border-y border-border py-16">
+        <div className="container mx-auto px-6">
+          <h2 className="text-2xl font-semibold text-center mb-12">How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                1
+            {[
+              { num: 1, title: 'Select State & Product', desc: 'Choose your state and product type to load the correct rule set' },
+              { num: 2, title: 'Upload Label Images', desc: 'Upload front, back, side panels and exit bag images' },
+              { num: 3, title: 'AI Analysis', desc: 'Our AI extracts text, symbols, and validates against rules' },
+              { num: 4, title: 'Get Report', desc: 'View results with pass/warn/fail status and export reports' },
+            ].map((step) => (
+              <div key={step.num} className="text-center">
+                <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-lg font-semibold mx-auto mb-4">
+                  {step.num}
+                </div>
+                <h3 className="font-medium mb-2">{step.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {step.desc}
+                </p>
               </div>
-              <h3 className="font-bold mb-2">Select State & Product</h3>
-              <p className="text-sm text-muted-foreground">
-                Choose your state and product type to load the correct rule set
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                2
-              </div>
-              <h3 className="font-bold mb-2">Upload Label Images</h3>
-              <p className="text-sm text-muted-foreground">
-                Upload front, back, side panels and exit bag images
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                3
-              </div>
-              <h3 className="font-bold mb-2">AI Analysis</h3>
-              <p className="text-sm text-muted-foreground">
-                Our AI extracts text, symbols, and validates against rules
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary text-primary-foreground flex items-center justify-center text-2xl font-bold mx-auto mb-4">
-                4
-              </div>
-              <h3 className="font-bold mb-2">Get Report</h3>
-              <p className="text-sm text-muted-foreground">
-                View results with pass/warn/fail status and export reports
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-12">Why Choose CannLabel?</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="border-2 border-border p-8 shadow-sm">
-            <Zap className="w-10 h-10 mb-4" />
-            <h3 className="text-xl font-bold mb-2">Fast Validation</h3>
-            <p className="text-muted-foreground">
-              Get compliance results in minutes, not days. Catch issues before state submission.
-            </p>
-          </div>
-          <div className="border-2 border-border p-8 shadow-sm">
-            <CheckCircle2 className="w-10 h-10 mb-4" />
-            <h3 className="text-xl font-bold mb-2">Accurate AI Analysis</h3>
-            <p className="text-muted-foreground">
-              Multimodal AI reads every detail: text, symbols, warnings, THC content, net weight.
-            </p>
-          </div>
-          <div className="border-2 border-border p-8 shadow-sm">
-            <FileText className="w-10 h-10 mb-4" />
-            <h3 className="text-xl font-bold mb-2">Detailed Reports</h3>
-            <p className="text-muted-foreground">
-              Export PDF or CSV reports with citations. Ready for QA review or regulatory submission.
-            </p>
-          </div>
-          <div className="border-2 border-border p-8 shadow-sm">
-            <Upload className="w-10 h-10 mb-4" />
-            <h3 className="text-xl font-bold mb-2">Multi-Panel Support</h3>
-            <p className="text-muted-foreground">
-              Analyze front, back, side panels, and exit bags together for complete compliance.
-            </p>
-          </div>
-          <div className="border-2 border-border p-8 shadow-sm">
-            <Lock className="w-10 h-10 mb-4" />
-            <h3 className="text-xl font-bold mb-2">Secure & Private</h3>
-            <p className="text-muted-foreground">
-              Your label images and compliance data are encrypted and never shared.
-            </p>
-          </div>
-          <div className="border-2 border-border p-8 shadow-sm">
-            <BarChart3 className="w-10 h-10 mb-4" />
-            <h3 className="text-xl font-bold mb-2">Track History</h3>
-            <p className="text-muted-foreground">
-              View all past checks, compare versions, and track compliance improvements over time.
-            </p>
-          </div>
+      <section className="container mx-auto px-6 py-16">
+        <h2 className="text-2xl font-semibold text-center mb-12">Why Choose CannLabel?</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { icon: Zap, title: 'Fast Validation', desc: 'Get compliance results in minutes, not days. Catch issues before state submission.' },
+            { icon: CheckCircle2, title: 'Accurate AI Analysis', desc: 'Multimodal AI reads every detail: text, symbols, warnings, THC content, net weight.' },
+            { icon: FileText, title: 'Detailed Reports', desc: 'Export PDF or CSV reports with citations. Ready for QA review or regulatory submission.' },
+            { icon: Upload, title: 'Multi-Panel Support', desc: 'Analyze front, back, side panels, and exit bags together for complete compliance.' },
+            { icon: Lock, title: 'Secure & Private', desc: 'Your label images and compliance data are encrypted and never shared.' },
+            { icon: BarChart3, title: 'Track History', desc: 'View all past checks, compare versions, and track compliance improvements over time.' },
+          ].map((feature) => (
+            <div key={feature.title} className="border border-border rounded-lg p-6 bg-card">
+              <feature.icon className="w-8 h-8 mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">{feature.title}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                {feature.desc}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* CTA */}
       <section className="bg-primary text-primary-foreground py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Validate Your Labels?</h2>
-          <p className="text-lg opacity-90 mb-8 max-w-xl mx-auto">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-2xl font-semibold mb-4">Ready to Validate Your Labels?</h2>
+          <p className="text-base opacity-90 mb-8 max-w-xl mx-auto">
             Stop worrying about state rejections. Get AI-powered compliance checks in minutes.
           </p>
           <Button size="lg" variant="secondary" asChild>
             <Link to="/auth">
               Create Free Account
-              <ArrowRight className="w-5 h-5 ml-2" />
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
           </Button>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t-2 border-border py-8">
-        <div className="container mx-auto px-4 text-center text-muted-foreground">
+      <footer className="border-t border-border py-8">
+        <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
           <p>© 2024 CannLabel Compliance. All rights reserved.</p>
         </div>
       </footer>

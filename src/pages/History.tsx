@@ -91,10 +91,10 @@ export default function History() {
 
   return (
     <AppLayout>
-      <div className="p-8">
+      <div className="p-6 lg:p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Compliance History</h1>
+            <h1 className="text-2xl font-semibold">Compliance History</h1>
             <p className="text-muted-foreground mt-1">
               View all your past compliance checks
             </p>
@@ -104,11 +104,11 @@ export default function History() {
           </Button>
         </div>
 
-        <Card className="border-2 border-border shadow-sm">
+        <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <CardTitle>All Compliance Checks</CardTitle>
+                <CardTitle className="text-lg">All Compliance Checks</CardTitle>
                 <CardDescription>{checks.length} total checks</CardDescription>
               </div>
               <div className="relative w-64">
@@ -127,7 +127,7 @@ export default function History() {
               <div className="py-8 text-center text-muted-foreground">Loading...</div>
             ) : filteredChecks.length === 0 ? (
               <div className="py-12 text-center">
-                <FileCheck className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <FileCheck className="w-10 h-10 mx-auto text-muted-foreground/50 mb-4" />
                 <p className="text-muted-foreground mb-4">
                   {searchQuery ? 'No checks match your search' : 'No compliance checks yet'}
                 </p>
@@ -162,13 +162,13 @@ export default function History() {
                       <TableCell className="font-medium">
                         {check.product_name || 'Unnamed Product'}
                       </TableCell>
-                      <TableCell>{PRODUCT_TYPE_LABELS[check.product_type]}</TableCell>
-                      <TableCell>{check.states?.abbreviation || '-'}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-muted-foreground">{PRODUCT_TYPE_LABELS[check.product_type]}</TableCell>
+                      <TableCell className="text-muted-foreground">{check.states?.abbreviation || '-'}</TableCell>
+                      <TableCell className="text-muted-foreground">
                         {new Date(check.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-3 text-sm">
+                        <div className="flex items-center gap-3 text-xs">
                           <span className="text-chart-2">{check.pass_count} pass</span>
                           <span className="text-chart-4">{check.warning_count} warn</span>
                           <span className="text-destructive">{check.fail_count} fail</span>

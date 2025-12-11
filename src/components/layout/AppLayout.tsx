@@ -47,22 +47,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-r-2 border-sidebar-border flex flex-col">
+      <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
         {/* Logo */}
-        <div className="p-4 border-b-2 border-sidebar-border">
+        <div className="p-5 border-b border-sidebar-border">
           <Link to="/dashboard" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-sidebar-primary flex items-center justify-center">
-              <Shield className="w-6 h-6 text-sidebar-primary-foreground" />
+            <div className="w-9 h-9 bg-sidebar-primary rounded-md flex items-center justify-center">
+              <Shield className="w-5 h-5 text-sidebar-primary-foreground" />
             </div>
             <div>
-              <h1 className="font-bold text-sidebar-foreground">CannLabel</h1>
+              <h1 className="font-semibold text-sidebar-foreground">CannLabel</h1>
               <p className="text-xs text-muted-foreground">Compliance</p>
             </div>
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href;
             return (
@@ -70,23 +70,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors border-2',
+                  'flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-md transition-colors',
                   isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-border shadow-xs'
-                    : 'text-sidebar-foreground border-transparent hover:bg-sidebar-accent hover:border-sidebar-border'
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                 )}
               >
                 <item.icon className="w-4 h-4" />
                 {item.label}
-                {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                {isActive && <ChevronRight className="w-4 h-4 ml-auto opacity-50" />}
               </Link>
             );
           })}
 
           {isAdmin && (
             <>
-              <div className="pt-4 pb-2">
-                <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="pt-5 pb-2">
+                <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Admin
                 </p>
               </div>
@@ -97,15 +97,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     key={item.href}
                     to={item.href}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors border-2',
+                      'flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-md transition-colors',
                       isActive
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-border shadow-xs'
-                        : 'text-sidebar-foreground border-transparent hover:bg-sidebar-accent hover:border-sidebar-border'
+                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                     )}
                   >
                     <item.icon className="w-4 h-4" />
                     {item.label}
-                    {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                    {isActive && <ChevronRight className="w-4 h-4 ml-auto opacity-50" />}
                   </Link>
                 );
               })}
@@ -114,10 +114,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </nav>
 
         {/* User section */}
-        <div className="p-4 border-t-2 border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 bg-sidebar-accent flex items-center justify-center border-2 border-sidebar-border">
-              <User className="w-4 h-4" />
+            <div className="w-8 h-8 bg-sidebar-accent rounded-full flex items-center justify-center">
+              <User className="w-4 h-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">
@@ -129,9 +129,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </div>
           </div>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="w-full"
+            className="w-full justify-start text-muted-foreground hover:text-foreground"
             onClick={handleSignOut}
           >
             <LogOut className="w-4 h-4 mr-2" />

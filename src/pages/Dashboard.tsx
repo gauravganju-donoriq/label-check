@@ -93,10 +93,10 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="p-8">
+      <div className="p-6 lg:p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">
+          <h1 className="text-2xl font-semibold text-foreground">
             Welcome back{profile?.full_name ? `, ${profile.full_name}` : ''}
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -106,69 +106,69 @@ export default function Dashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="border-2 border-border shadow-sm">
+          <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Checks</p>
-                  <p className="text-3xl font-bold mt-1">{stats.total}</p>
+                  <p className="text-sm text-muted-foreground">Total Checks</p>
+                  <p className="text-2xl font-semibold mt-1">{stats.total}</p>
                 </div>
-                <FileCheck className="w-8 h-8 text-muted-foreground" />
+                <FileCheck className="w-8 h-8 text-muted-foreground/50" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-border shadow-sm">
+          <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Passed</p>
-                  <p className="text-3xl font-bold mt-1 text-chart-2">{stats.passed}</p>
+                  <p className="text-sm text-muted-foreground">Passed</p>
+                  <p className="text-2xl font-semibold mt-1 text-chart-2">{stats.passed}</p>
                 </div>
-                <CheckCircle2 className="w-8 h-8 text-chart-2" />
+                <CheckCircle2 className="w-8 h-8 text-chart-2/50" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-border shadow-sm">
+          <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Warnings</p>
-                  <p className="text-3xl font-bold mt-1 text-chart-4">{stats.warnings}</p>
+                  <p className="text-sm text-muted-foreground">Warnings</p>
+                  <p className="text-2xl font-semibold mt-1 text-chart-4">{stats.warnings}</p>
                 </div>
-                <AlertTriangle className="w-8 h-8 text-chart-4" />
+                <AlertTriangle className="w-8 h-8 text-chart-4/50" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-border shadow-sm">
+          <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Failed</p>
-                  <p className="text-3xl font-bold mt-1 text-destructive">{stats.failed}</p>
+                  <p className="text-sm text-muted-foreground">Failed</p>
+                  <p className="text-2xl font-semibold mt-1 text-destructive">{stats.failed}</p>
                 </div>
-                <XCircle className="w-8 h-8 text-destructive" />
+                <XCircle className="w-8 h-8 text-destructive/50" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Quick Actions */}
-        <Card className="mb-8 border-2 border-border shadow-sm">
+        <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-4">
-              <Button asChild size="lg">
+            <div className="flex flex-wrap gap-3">
+              <Button asChild>
                 <Link to="/new-check">
-                  <Upload className="w-5 h-5 mr-2" />
+                  <Upload className="w-4 h-4 mr-2" />
                   New Compliance Check
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" asChild>
+              <Button variant="outline" asChild>
                 <Link to="/history">
                   View All History
                   <ArrowRight className="w-4 h-4 ml-2" />
@@ -179,9 +179,9 @@ export default function Dashboard() {
         </Card>
 
         {/* Recent Checks */}
-        <Card className="border-2 border-border shadow-sm">
+        <Card>
           <CardHeader>
-            <CardTitle>Recent Compliance Checks</CardTitle>
+            <CardTitle className="text-lg">Recent Compliance Checks</CardTitle>
             <CardDescription>Your most recent label validations</CardDescription>
           </CardHeader>
           <CardContent>
@@ -189,32 +189,32 @@ export default function Dashboard() {
               <div className="py-8 text-center text-muted-foreground">Loading...</div>
             ) : recentChecks.length === 0 ? (
               <div className="py-8 text-center">
-                <FileCheck className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <FileCheck className="w-10 h-10 mx-auto text-muted-foreground/50 mb-4" />
                 <p className="text-muted-foreground mb-4">No compliance checks yet</p>
                 <Button asChild>
                   <Link to="/new-check">Start Your First Check</Link>
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {recentChecks.map((check) => (
                   <Link
                     key={check.id}
                     to={`/results/${check.id}`}
-                    className="flex items-center justify-between p-4 border-2 border-border hover:bg-accent transition-colors"
+                    className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors"
                   >
                     <div className="flex items-center gap-4">
                       {getStatusIcon(check.overall_status)}
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-sm">
                           {check.product_name || `${check.product_type} Product`}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           {check.states?.name} • {new Date(check.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                       {getStatusBadge(check.overall_status)}
                       <ArrowRight className="w-4 h-4 text-muted-foreground" />
                     </div>
