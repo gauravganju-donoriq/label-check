@@ -99,14 +99,14 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-2 border-border shadow-md">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-primary flex items-center justify-center">
-            <Shield className="w-8 h-8 text-primary-foreground" />
+          <div className="mx-auto w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
+            <Shield className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">CannLabel Compliance</CardTitle>
+            <CardTitle className="text-xl font-semibold">CannLabel Compliance</CardTitle>
             <CardDescription className="mt-2">
               {isSignUp ? 'Create your account' : 'Sign in to your account'}
             </CardDescription>
@@ -183,7 +183,7 @@ export default function Auth() {
             <button
               type="button"
               onClick={switchMode}
-              className="text-sm text-muted-foreground hover:text-foreground underline"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
             </button>

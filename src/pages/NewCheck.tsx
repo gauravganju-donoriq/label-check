@@ -304,7 +304,7 @@ export default function NewCheck() {
 
   return (
     <AppLayout>
-      <div className="p-8 max-w-4xl mx-auto">
+      <div className="p-6 lg:p-8 max-w-4xl mx-auto">
         {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -316,19 +316,19 @@ export default function NewCheck() {
               return (
                 <div key={label} className="flex items-center">
                   <div
-                    className={`w-10 h-10 flex items-center justify-center font-bold border-2 ${
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium ${
                       isActive
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background text-muted-foreground border-border'
-                    } ${isCurrent ? 'shadow-sm' : ''}`}
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
                   >
                     {index + 1}
                   </div>
-                  <span className={`ml-2 text-sm font-medium ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <span className={`ml-2 text-sm font-medium hidden sm:inline ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {label}
                   </span>
                   {index < 3 && (
-                    <div className={`w-12 h-0.5 mx-4 ${isActive ? 'bg-primary' : 'bg-border'}`} />
+                    <div className={`w-8 md:w-12 h-px mx-2 md:mx-4 ${isActive ? 'bg-primary' : 'bg-border'}`} />
                   )}
                 </div>
               );
@@ -338,7 +338,7 @@ export default function NewCheck() {
 
         {/* Step 1: Select State & Product */}
         {step === 'select' && (
-          <Card className="border-2 border-border shadow-sm">
+          <Card>
             <CardHeader>
               <CardTitle>Select State & Product</CardTitle>
               <CardDescription>
@@ -431,7 +431,7 @@ export default function NewCheck() {
 
         {/* Step 2: Upload Panels */}
         {step === 'upload' && (
-          <Card className="border-2 border-border shadow-sm">
+          <Card>
             <CardHeader>
               <CardTitle>Upload Label Panels</CardTitle>
               <CardDescription>
@@ -446,13 +446,13 @@ export default function NewCheck() {
                   return (
                     <div
                       key={type}
-                      className="relative border-2 border-dashed border-border p-4 text-center min-h-[200px] flex flex-col items-center justify-center"
+                      className="relative border border-dashed border-border rounded-lg p-4 text-center min-h-[180px] flex flex-col items-center justify-center hover:border-muted-foreground/50 transition-colors"
                     >
                       {existingPanel ? (
                         <>
                           <button
                             onClick={() => removePanel(existingPanel.id)}
-                            className="absolute top-2 right-2 p-1 bg-destructive text-destructive-foreground hover:opacity-80"
+                            className="absolute top-2 right-2 p-1.5 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -500,7 +500,7 @@ export default function NewCheck() {
 
         {/* Step 3: Analysis in Progress */}
         {step === 'analyze' && (
-          <Card className="border-2 border-border shadow-sm">
+          <Card>
             <CardHeader className="text-center">
               <CardTitle>Analyzing Your Labels</CardTitle>
               <CardDescription>
@@ -524,10 +524,10 @@ export default function NewCheck() {
 
         {/* Step 4: Complete */}
         {step === 'complete' && (
-          <Card className="border-2 border-border shadow-sm">
+          <Card>
             <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-chart-2 flex items-center justify-center mb-4">
-                <CheckCircle2 className="w-8 h-8 text-primary-foreground" />
+              <div className="mx-auto w-14 h-14 bg-chart-2 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle2 className="w-7 h-7 text-primary-foreground" />
               </div>
               <CardTitle>Analysis Complete!</CardTitle>
               <CardDescription>
