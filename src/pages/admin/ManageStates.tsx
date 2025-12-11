@@ -96,7 +96,6 @@ export default function ManageStates() {
     setIsSaving(true);
     try {
       if (selectedState) {
-        // Update existing state
         const { error } = await supabase
           .from('states')
           .update({
@@ -109,7 +108,6 @@ export default function ManageStates() {
         if (error) throw error;
         toast({ title: 'Updated', description: 'State updated successfully' });
       } else {
-        // Create new state
         const { error } = await supabase
           .from('states')
           .insert({
@@ -236,9 +234,9 @@ export default function ManageStates() {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-96">
-          <Card className="p-6">
-            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <p className="text-center text-muted-foreground">Access denied. Admin privileges required.</p>
+          <Card className="p-6 text-center">
+            <AlertCircle className="w-10 h-10 text-destructive/70 mx-auto mb-4" />
+            <p className="text-muted-foreground">Access denied. Admin privileges required.</p>
           </Card>
         </div>
       </AppLayout>
@@ -247,10 +245,10 @@ export default function ManageStates() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="p-6 lg:p-8 space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">Manage States</h1>
+            <h1 className="text-2xl font-semibold">Manage States</h1>
             <p className="text-muted-foreground">Configure states and their regulatory sources</p>
           </div>
           <Button onClick={() => { setSelectedState(null); setStateForm({ name: '', abbreviation: '', is_enabled: true }); setShowStateDialog(true); }}>
@@ -260,16 +258,16 @@ export default function ManageStates() {
 
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <div className="space-y-4">
             {states.map(state => (
               <Card key={state.id}>
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <CardTitle className="text-xl">{state.name}</CardTitle>
+                      <CardTitle className="text-lg">{state.name}</CardTitle>
                       <Badge variant="outline">{state.abbreviation}</Badge>
                       <Badge variant={state.is_enabled ? 'default' : 'secondary'}>
                         {state.is_enabled ? 'Enabled' : 'Disabled'}
@@ -280,7 +278,7 @@ export default function ManageStates() {
                         checked={state.is_enabled}
                         onCheckedChange={() => toggleStateEnabled(state)}
                       />
-                      <Button variant="outline" size="sm" onClick={() => openEditState(state)}>
+                      <Button variant="ghost" size="sm" onClick={() => openEditState(state)}>
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => openAddSource(state)}>
@@ -310,12 +308,12 @@ export default function ManageStates() {
                           <TableRow key={source.id}>
                             <TableCell className="font-medium">{source.source_name}</TableCell>
                             <TableCell>
-                              <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline">
+                              <a href={source.source_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
                                 Visit <ExternalLink className="w-3 h-3" />
                               </a>
                             </TableCell>
-                            <TableCell>Every {source.check_frequency_days} days</TableCell>
-                            <TableCell>
+                            <TableCell className="text-muted-foreground">Every {source.check_frequency_days} days</TableCell>
+                            <TableCell className="text-muted-foreground">
                               {source.last_checked
                                 ? format(new Date(source.last_checked), 'MMM d, yyyy HH:mm')
                                 : 'Never'}
@@ -354,8 +352,8 @@ export default function ManageStates() {
               {selectedState ? 'Update state information' : 'Add a new state for compliance tracking'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
               <Label>State Name</Label>
               <Input
                 value={stateForm.name}
@@ -363,7 +361,7 @@ export default function ManageStates() {
                 placeholder="e.g., Oregon"
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label>Abbreviation</Label>
               <Input
                 value={stateForm.abbreviation}
@@ -399,8 +397,8 @@ export default function ManageStates() {
               Configure a regulatory source for {selectedState?.name}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
               <Label>Source Name</Label>
               <Input
                 value={sourceForm.source_name}
@@ -408,7 +406,7 @@ export default function ManageStates() {
                 placeholder="e.g., Oregon OLCC Regulations"
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label>Source URL</Label>
               <Input
                 value={sourceForm.source_url}
@@ -416,7 +414,7 @@ export default function ManageStates() {
                 placeholder="https://example.gov/regulations"
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label>Check Frequency (days)</Label>
               <Input
                 type="number"

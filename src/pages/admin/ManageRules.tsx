@@ -59,7 +59,6 @@ export default function ManageRules() {
   const [editingRule, setEditingRule] = useState<ComplianceRule | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -148,7 +147,6 @@ export default function ManageRules() {
 
     try {
       if (editingRule) {
-        // Update existing rule
         const { error } = await supabase
           .from('compliance_rules')
           .update({
@@ -165,10 +163,8 @@ export default function ManageRules() {
           .eq('id', editingRule.id);
 
         if (error) throw error;
-        
         toast({ title: 'Rule updated successfully' });
       } else {
-        // Create new rule
         const { error } = await supabase.from('compliance_rules').insert({
           state_id: selectedState,
           name: formData.name,
@@ -182,7 +178,6 @@ export default function ManageRules() {
         });
 
         if (error) throw error;
-        
         toast({ title: 'Rule created successfully' });
       }
 
@@ -206,7 +201,6 @@ export default function ManageRules() {
     try {
       const { error } = await supabase.from('compliance_rules').delete().eq('id', ruleId);
       if (error) throw error;
-      
       toast({ title: 'Rule deleted successfully' });
       fetchRules();
     } catch (error) {
@@ -247,9 +241,9 @@ export default function ManageRules() {
   if (!isAdmin) {
     return (
       <AppLayout>
-        <div className="p-8 text-center">
-          <AlertTriangle className="w-12 h-12 mx-auto text-destructive mb-4" />
-          <p className="text-xl font-bold mb-2">Access Denied</p>
+        <div className="p-6 lg:p-8 text-center">
+          <AlertTriangle className="w-10 h-10 mx-auto text-destructive/70 mb-4" />
+          <p className="text-lg font-medium mb-2">Access Denied</p>
           <p className="text-muted-foreground">You need admin privileges to access this page.</p>
         </div>
       </AppLayout>
@@ -258,28 +252,28 @@ export default function ManageRules() {
 
   return (
     <AppLayout>
-      <div className="p-8">
+      <div className="p-6 lg:p-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Manage Compliance Rules</h1>
+            <h1 className="text-2xl font-semibold">Manage Compliance Rules</h1>
             <p className="text-muted-foreground mt-1">
               Create and manage state-specific compliance rules
             </p>
           </div>
         </div>
 
-        <Card className="border-2 border-border shadow-sm">
+        <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <CardTitle>Compliance Rules</CardTitle>
+                <CardTitle className="text-lg">Compliance Rules</CardTitle>
                 <CardDescription>
                   Rules are checked against extracted label data
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <Select value={selectedState} onValueChange={setSelectedState}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-44">
                     <SelectValue placeholder="Select state" />
                   </SelectTrigger>
                   <SelectContent>
@@ -351,7 +345,7 @@ export default function ManageRules() {
                           id="validation_prompt"
                           value={formData.validation_prompt}
                           onChange={(e) => setFormData(prev => ({ ...prev, validation_prompt: e.target.value }))}
-                          placeholder="Detailed criteria for the AI to evaluate. e.g., 'Check if the label contains the text: Keep out of reach of children. The text must be clearly visible and in a font size of at least 6pt.'"
+                          placeholder="Detailed criteria for the AI to evaluate..."
                           rows={4}
                         />
                       </div>
@@ -474,33 +468,21 @@ export default function ManageRules() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{rule.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{rule.category}</Badge>
-                      </TableCell>
+                      <TableCell className="text-muted-foreground">{rule.category}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {getSeverityIcon(rule.severity)}
-                          <span className="capitalize">{rule.severity}</span>
+                          <span className="capitalize text-sm">{rule.severity}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {rule.citation || '-'}
-                      </TableCell>
-                      <TableCell>v{rule.version}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{rule.citation || '-'}</TableCell>
+                      <TableCell className="text-muted-foreground">v{rule.version}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditDialog(rule)}
-                          >
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(rule)}>
                             <Pencil className="w-4 h-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(rule.id)}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(rule.id)}>
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>
