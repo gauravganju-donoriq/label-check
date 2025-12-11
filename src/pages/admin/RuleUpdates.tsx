@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, Check, X, AlertCircle, Clock, Loader2, Eye } from 'lucide-react';
@@ -77,10 +78,7 @@ export default function RuleUpdates() {
     setIsLoading(true);
     let query = supabase
       .from('rule_change_suggestions')
-      .select(`
-        *,
-        states (id, name, abbreviation)
-      `)
+      .select(`*, states (id, name, abbreviation)`)
       .order('created_at', { ascending: false });
 
     if (selectedState !== 'all') {
@@ -94,7 +92,6 @@ export default function RuleUpdates() {
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      // Fetch existing rules for update/deprecate suggestions
       const suggestionsWithRules = await Promise.all(
         (data || []).map(async (s) => {
           if (s.existing_rule_id) {
@@ -141,7 +138,6 @@ export default function RuleUpdates() {
     setIsProcessing(true);
     try {
       if (suggestion.change_type === 'new') {
-        // Create new rule
         const { data: newRule, error: createError } = await supabase
           .from('compliance_rules')
           .insert({
@@ -159,7 +155,6 @@ export default function RuleUpdates() {
 
         if (createError) throw createError;
 
-        // Log the creation
         await supabase.from('rule_audit_log').insert({
           rule_id: newRule.id,
           state_id: suggestion.state_id,
@@ -171,14 +166,12 @@ export default function RuleUpdates() {
         });
 
       } else if (suggestion.change_type === 'update' && suggestion.existing_rule_id) {
-        // Get current rule for audit
         const { data: currentRule } = await supabase
           .from('compliance_rules')
           .select('*')
           .eq('id', suggestion.existing_rule_id)
           .single();
 
-        // Update existing rule
         const { data: updatedRule, error: updateError } = await supabase
           .from('compliance_rules')
           .update({
@@ -196,7 +189,6 @@ export default function RuleUpdates() {
 
         if (updateError) throw updateError;
 
-        // Log the update
         await supabase.from('rule_audit_log').insert({
           rule_id: suggestion.existing_rule_id,
           state_id: suggestion.state_id,
@@ -209,14 +201,12 @@ export default function RuleUpdates() {
         });
 
       } else if (suggestion.change_type === 'deprecate' && suggestion.existing_rule_id) {
-        // Get current rule for audit
         const { data: currentRule } = await supabase
           .from('compliance_rules')
           .select('*')
           .eq('id', suggestion.existing_rule_id)
           .single();
 
-        // Deactivate the rule
         const { error: deactivateError } = await supabase
           .from('compliance_rules')
           .update({ is_active: false })
@@ -224,7 +214,6 @@ export default function RuleUpdates() {
 
         if (deactivateError) throw deactivateError;
 
-        // Log the deactivation
         await supabase.from('rule_audit_log').insert({
           rule_id: suggestion.existing_rule_id,
           state_id: suggestion.state_id,
@@ -236,7 +225,6 @@ export default function RuleUpdates() {
         });
       }
 
-      // Update suggestion status
       await supabase
         .from('rule_change_suggestions')
         .update({
@@ -291,11 +279,11 @@ export default function RuleUpdates() {
   function getChangeTypeBadge(type: string) {
     switch (type) {
       case 'new':
-        return <Badge className="bg-green-500">New Rule</Badge>;
+        return <Badge className="bg-chart-2">New Rule</Badge>;
       case 'update':
         return <Badge className="bg-blue-500">Update</Badge>;
       case 'deprecate':
-        return <Badge className="bg-red-500">Deprecate</Badge>;
+        return <Badge variant="destructive">Deprecate</Badge>;
       default:
         return <Badge>{type}</Badge>;
     }
@@ -304,9 +292,9 @@ export default function RuleUpdates() {
   function getStatusBadge(status: string) {
     switch (status) {
       case 'pending':
-        return <Badge variant="outline" className="border-yellow-500 text-yellow-600"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+        return <Badge variant="outline" className="border-chart-4 text-chart-4"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
       case 'approved':
-        return <Badge className="bg-green-500"><Check className="w-3 h-3 mr-1" />Approved</Badge>;
+        return <Badge className="bg-chart-2"><Check className="w-3 h-3 mr-1" />Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive"><X className="w-3 h-3 mr-1" />Rejected</Badge>;
       default:
@@ -318,9 +306,9 @@ export default function RuleUpdates() {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-96">
-          <Card className="p-6">
-            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-            <p className="text-center text-muted-foreground">Access denied. Admin privileges required.</p>
+          <Card className="p-6 text-center">
+            <AlertCircle className="w-10 h-10 text-destructive/70 mx-auto mb-4" />
+            <p className="text-muted-foreground">Access denied. Admin privileges required.</p>
           </Card>
         </div>
       </AppLayout>
@@ -329,10 +317,10 @@ export default function RuleUpdates() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="p-6 lg:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Rule Update Suggestions</h1>
+            <h1 className="text-2xl font-semibold">Rule Update Suggestions</h1>
             <p className="text-muted-foreground">Review AI-detected regulatory changes</p>
           </div>
           <Button onClick={runRegulationCheck} disabled={isChecking}>
@@ -341,9 +329,9 @@ export default function RuleUpdates() {
           </Button>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <Select value={selectedState} onValueChange={setSelectedState}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-44">
               <SelectValue placeholder="Filter by state" />
             </SelectTrigger>
             <SelectContent>
@@ -355,7 +343,7 @@ export default function RuleUpdates() {
           </Select>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-44">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -369,12 +357,12 @@ export default function RuleUpdates() {
 
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : suggestions.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <AlertCircle className="w-10 h-10 text-muted-foreground/50 mx-auto mb-4" />
               <p className="text-muted-foreground">No suggestions found matching your filters.</p>
               <Button variant="outline" className="mt-4" onClick={runRegulationCheck} disabled={isChecking}>
                 Run Regulation Check
@@ -382,19 +370,19 @@ export default function RuleUpdates() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {suggestions.map(suggestion => (
               <Card key={suggestion.id}>
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {getChangeTypeBadge(suggestion.change_type)}
                         {getStatusBadge(suggestion.status)}
                         <Badge variant="outline">{suggestion.states?.abbreviation}</Badge>
                       </div>
-                      <CardTitle className="text-lg">{suggestion.suggested_name}</CardTitle>
-                      <CardDescription>{suggestion.suggested_description}</CardDescription>
+                      <CardTitle className="text-base">{suggestion.suggested_name}</CardTitle>
+                      <CardDescription className="text-sm">{suggestion.suggested_description}</CardDescription>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => setSelectedSuggestion(suggestion)}>
                       <Eye className="w-4 h-4 mr-1" /> Review
@@ -404,19 +392,19 @@ export default function RuleUpdates() {
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Category:</span>
+                      <span className="text-muted-foreground text-xs">Category</span>
                       <p className="font-medium">{suggestion.suggested_category || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Severity:</span>
+                      <span className="text-muted-foreground text-xs">Severity</span>
                       <p className="font-medium capitalize">{suggestion.suggested_severity || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Citation:</span>
+                      <span className="text-muted-foreground text-xs">Citation</span>
                       <p className="font-medium">{suggestion.suggested_citation || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Created:</span>
+                      <span className="text-muted-foreground text-xs">Created</span>
                       <p className="font-medium">{format(new Date(suggestion.created_at), 'MMM d, yyyy')}</p>
                     </div>
                   </div>
@@ -443,15 +431,15 @@ export default function RuleUpdates() {
           {selectedSuggestion && (
             <div className="space-y-4">
               {selectedSuggestion.change_type !== 'new' && selectedSuggestion.existing_rule && (
-                <Card className="bg-muted/50">
+                <Card className="bg-muted/30">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Current Rule</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-sm">
-                    <p><strong>Name:</strong> {selectedSuggestion.existing_rule.name}</p>
-                    <p><strong>Description:</strong> {selectedSuggestion.existing_rule.description}</p>
-                    <p><strong>Category:</strong> {selectedSuggestion.existing_rule.category}</p>
-                    <p><strong>Severity:</strong> {selectedSuggestion.existing_rule.severity}</p>
+                  <CardContent className="text-sm space-y-1">
+                    <p><span className="text-muted-foreground">Name:</span> {selectedSuggestion.existing_rule.name}</p>
+                    <p><span className="text-muted-foreground">Description:</span> {selectedSuggestion.existing_rule.description}</p>
+                    <p><span className="text-muted-foreground">Category:</span> {selectedSuggestion.existing_rule.category}</p>
+                    <p><span className="text-muted-foreground">Severity:</span> {selectedSuggestion.existing_rule.severity}</p>
                   </CardContent>
                 </Card>
               )}
@@ -460,12 +448,12 @@ export default function RuleUpdates() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">Suggested Changes</CardTitle>
                 </CardHeader>
-                <CardContent className="text-sm space-y-2">
-                  <p><strong>Name:</strong> {selectedSuggestion.suggested_name}</p>
-                  <p><strong>Description:</strong> {selectedSuggestion.suggested_description}</p>
-                  <p><strong>Category:</strong> {selectedSuggestion.suggested_category || 'N/A'}</p>
-                  <p><strong>Severity:</strong> {selectedSuggestion.suggested_severity || 'N/A'}</p>
-                  <p><strong>Citation:</strong> {selectedSuggestion.suggested_citation || 'N/A'}</p>
+                <CardContent className="text-sm space-y-1">
+                  <p><span className="text-muted-foreground">Name:</span> {selectedSuggestion.suggested_name}</p>
+                  <p><span className="text-muted-foreground">Description:</span> {selectedSuggestion.suggested_description}</p>
+                  <p><span className="text-muted-foreground">Category:</span> {selectedSuggestion.suggested_category || 'N/A'}</p>
+                  <p><span className="text-muted-foreground">Severity:</span> {selectedSuggestion.suggested_severity || 'N/A'}</p>
+                  <p><span className="text-muted-foreground">Citation:</span> {selectedSuggestion.suggested_citation || 'N/A'}</p>
                 </CardContent>
               </Card>
 
@@ -474,8 +462,8 @@ export default function RuleUpdates() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">AI Reasoning</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-sm">
-                    <p>{selectedSuggestion.ai_reasoning}</p>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">{selectedSuggestion.ai_reasoning}</p>
                   </CardContent>
                 </Card>
               )}
@@ -485,38 +473,46 @@ export default function RuleUpdates() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Source Excerpt</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-sm">
-                    <p className="italic">{selectedSuggestion.source_excerpt}</p>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground italic">"{selectedSuggestion.source_excerpt}"</p>
                   </CardContent>
                 </Card>
               )}
 
-              <div>
-                <label className="text-sm font-medium">Review Notes (Optional)</label>
+              <div className="space-y-2">
+                <Label>Review Notes (Optional)</Label>
                 <Textarea
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
-                  placeholder="Add notes about your decision..."
-                  className="mt-1"
+                  placeholder="Add any notes about your decision..."
+                  rows={3}
                 />
               </div>
             </div>
           )}
 
-          <DialogFooter>
-            {selectedSuggestion?.status === 'pending' ? (
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setSelectedSuggestion(null); setReviewNotes(''); }}>
+              Cancel
+            </Button>
+            {selectedSuggestion?.status === 'pending' && (
               <>
-                <Button variant="outline" onClick={() => handleReject(selectedSuggestion)} disabled={isProcessing}>
+                <Button
+                  variant="outline"
+                  onClick={() => selectedSuggestion && handleReject(selectedSuggestion)}
+                  disabled={isProcessing}
+                >
                   {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <X className="w-4 h-4 mr-2" />}
                   Reject
                 </Button>
-                <Button onClick={() => handleApprove(selectedSuggestion)} disabled={isProcessing}>
+                <Button
+                  onClick={() => selectedSuggestion && handleApprove(selectedSuggestion)}
+                  disabled={isProcessing}
+                >
                   {isProcessing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
                   Approve
                 </Button>
               </>
-            ) : (
-              <Button variant="outline" onClick={() => setSelectedSuggestion(null)}>Close</Button>
             )}
           </DialogFooter>
         </DialogContent>
