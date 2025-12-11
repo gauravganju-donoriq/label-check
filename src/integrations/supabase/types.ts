@@ -295,6 +295,56 @@ export type Database = {
         }
         Relationships: []
       }
+      regulatory_sources: {
+        Row: {
+          check_frequency_days: number | null
+          content_hash: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_checked: string | null
+          last_content_change: string | null
+          source_name: string
+          source_url: string
+          state_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          check_frequency_days?: number | null
+          content_hash?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_checked?: string | null
+          last_content_change?: string | null
+          source_name: string
+          source_url: string
+          state_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          check_frequency_days?: number | null
+          content_hash?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_checked?: string | null
+          last_content_change?: string | null
+          source_name?: string
+          source_url?: string
+          state_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_sources_state_id_fkey"
+            columns: ["state_id"]
+            isOneToOne: false
+            referencedRelation: "states"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           compliance_check_id: string
@@ -323,6 +373,152 @@ export type Database = {
             columns: ["compliance_check_id"]
             isOneToOne: false
             referencedRelation: "compliance_checks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_audit_log: {
+        Row: {
+          action: string
+          change_reason: string | null
+          changed_by: string | null
+          created_at: string | null
+          id: string
+          new_version: Json | null
+          previous_version: Json | null
+          rule_id: string | null
+          state_id: string | null
+          suggestion_id: string | null
+        }
+        Insert: {
+          action: string
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_version?: Json | null
+          previous_version?: Json | null
+          rule_id?: string | null
+          state_id?: string | null
+          suggestion_id?: string | null
+        }
+        Update: {
+          action?: string
+          change_reason?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_version?: Json | null
+          previous_version?: Json | null
+          rule_id?: string | null
+          state_id?: string | null
+          suggestion_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_audit_log_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_audit_log_state_id_fkey"
+            columns: ["state_id"]
+            isOneToOne: false
+            referencedRelation: "states"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_audit_log_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "rule_change_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_change_suggestions: {
+        Row: {
+          ai_reasoning: string | null
+          change_type: string
+          created_at: string | null
+          existing_rule_id: string | null
+          id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_excerpt: string | null
+          source_id: string | null
+          state_id: string
+          status: string | null
+          suggested_category: string | null
+          suggested_citation: string | null
+          suggested_description: string
+          suggested_name: string
+          suggested_severity: string | null
+          suggested_validation_prompt: string | null
+        }
+        Insert: {
+          ai_reasoning?: string | null
+          change_type: string
+          created_at?: string | null
+          existing_rule_id?: string | null
+          id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_excerpt?: string | null
+          source_id?: string | null
+          state_id: string
+          status?: string | null
+          suggested_category?: string | null
+          suggested_citation?: string | null
+          suggested_description: string
+          suggested_name: string
+          suggested_severity?: string | null
+          suggested_validation_prompt?: string | null
+        }
+        Update: {
+          ai_reasoning?: string | null
+          change_type?: string
+          created_at?: string | null
+          existing_rule_id?: string | null
+          id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_excerpt?: string | null
+          source_id?: string | null
+          state_id?: string
+          status?: string | null
+          suggested_category?: string | null
+          suggested_citation?: string | null
+          suggested_description?: string
+          suggested_name?: string
+          suggested_severity?: string | null
+          suggested_validation_prompt?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_change_suggestions_existing_rule_id_fkey"
+            columns: ["existing_rule_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_change_suggestions_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rule_change_suggestions_state_id_fkey"
+            columns: ["state_id"]
+            isOneToOne: false
+            referencedRelation: "states"
             referencedColumns: ["id"]
           },
         ]

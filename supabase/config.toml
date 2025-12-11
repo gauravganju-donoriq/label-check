@@ -35,3 +35,6 @@ verify_jwt = true
 
 [functions.run-compliance-check]
 verify_jwt = true
+
+[functions.check-regulations]
+verify_jwt = true
