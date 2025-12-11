@@ -12,6 +12,9 @@ import {
   LogOut,
   User,
   ChevronRight,
+  Globe,
+  RefreshCw,
+  FileText,
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -26,6 +29,9 @@ const navItems = [
 
 const adminNavItems = [
   { href: '/admin/rules', label: 'Manage Rules', icon: Settings },
+  { href: '/admin/states', label: 'Manage States', icon: Globe },
+  { href: '/admin/rule-updates', label: 'Rule Updates', icon: RefreshCw },
+  { href: '/admin/audit-log', label: 'Audit Log', icon: FileText },
 ];
 
 export default function AppLayout({ children }: AppLayoutProps) {
