@@ -3,6 +3,7 @@ export type ComplianceSeverity = 'error' | 'warning' | 'info';
 export type ComplianceStatus = 'pass' | 'warning' | 'fail';
 export type ProductType = 'flower' | 'edibles' | 'concentrates' | 'topicals' | 'tinctures' | 'pre_rolls' | 'other';
 export type PanelType = 'front' | 'back' | 'left_side' | 'right_side' | 'exit_bag' | 'other';
+export type RuleSourceType = 'regulatory' | 'internal';
 
 export interface State {
   id: string;
@@ -24,6 +25,7 @@ export interface ComplianceRule {
   validation_prompt: string;
   is_active: boolean;
   version: number;
+  source_type: RuleSourceType;
 }
 
 export interface CustomRule {

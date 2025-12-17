@@ -7,6 +7,7 @@ import {
   ComplianceRule,
   ComplianceSeverity,
   ProductType,
+  RuleSourceType,
   PRODUCT_TYPE_LABELS,
   RULE_CATEGORIES,
 } from '@/types/compliance';
@@ -45,6 +46,8 @@ import {
   AlertCircle,
   Info,
   Loader2,
+  Globe,
+  User,
 } from 'lucide-react';
 import { CitationLink } from '@/components/CitationLink';
 
@@ -66,9 +69,11 @@ export default function ManageRules() {
     category: '',
     severity: 'error' as ComplianceSeverity,
     citation: '',
+    source_url: '',
     validation_prompt: '',
     product_types: Object.keys(PRODUCT_TYPE_LABELS) as ProductType[],
     is_active: true,
+    source_type: 'regulatory' as RuleSourceType,
   });
 
   useEffect(() => {
@@ -112,9 +117,11 @@ export default function ManageRules() {
       category: '',
       severity: 'error',
       citation: '',
+      source_url: '',
       validation_prompt: '',
       product_types: Object.keys(PRODUCT_TYPE_LABELS) as ProductType[],
       is_active: true,
+      source_type: 'regulatory',
     });
     setIsDialogOpen(true);
   };
@@ -127,9 +134,11 @@ export default function ManageRules() {
       category: rule.category,
       severity: rule.severity,
       citation: rule.citation || '',
+      source_url: rule.source_url || '',
       validation_prompt: rule.validation_prompt,
       product_types: rule.product_types,
       is_active: rule.is_active,
+      source_type: rule.source_type || 'regulatory',
     });
     setIsDialogOpen(true);
   };
@@ -140,6 +149,16 @@ export default function ManageRules() {
         variant: 'destructive',
         title: 'Validation Error',
         description: 'Please fill in all required fields.',
+      });
+      return;
+    }
+
+    // Regulatory rules require citation and source URL
+    if (formData.source_type === 'regulatory' && (!formData.citation || !formData.source_url)) {
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Regulatory rules require a citation and source URL.',
       });
       return;
     }
@@ -155,10 +174,12 @@ export default function ManageRules() {
             description: formData.description,
             category: formData.category,
             severity: formData.severity,
-            citation: formData.citation || null,
+            citation: formData.source_type === 'internal' ? null : (formData.citation || null),
+            source_url: formData.source_type === 'internal' ? null : (formData.source_url || null),
             validation_prompt: formData.validation_prompt,
             product_types: formData.product_types,
             is_active: formData.is_active,
+            source_type: formData.source_type,
             version: editingRule.version + 1,
           })
           .eq('id', editingRule.id);
@@ -172,10 +193,12 @@ export default function ManageRules() {
           description: formData.description,
           category: formData.category,
           severity: formData.severity,
-          citation: formData.citation || null,
+          citation: formData.source_type === 'internal' ? null : (formData.citation || null),
+          source_url: formData.source_type === 'internal' ? null : (formData.source_url || null),
           validation_prompt: formData.validation_prompt,
           product_types: formData.product_types,
           is_active: formData.is_active,
+          source_type: formData.source_type,
         });
 
         if (error) throw error;
@@ -301,6 +324,35 @@ export default function ManageRules() {
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
+                      {/* Source Type Toggle */}
+                      <div className="space-y-2">
+                        <Label>Rule Source *</Label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="source_type"
+                              checked={formData.source_type === 'regulatory'}
+                              onChange={() => setFormData(prev => ({ ...prev, source_type: 'regulatory' }))}
+                              className="w-4 h-4"
+                            />
+                            <Globe className="w-4 h-4 text-chart-1" />
+                            <span className="text-sm">Regulatory (from state law)</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="source_type"
+                              checked={formData.source_type === 'internal'}
+                              onChange={() => setFormData(prev => ({ ...prev, source_type: 'internal' }))}
+                              className="w-4 h-4"
+                            />
+                            <User className="w-4 h-4 text-chart-3" />
+                            <span className="text-sm">Internal (SOP rule)</span>
+                          </label>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="name">Rule Name *</Label>
@@ -368,16 +420,30 @@ export default function ManageRules() {
                             </SelectContent>
                           </Select>
                         </div>
+                        {formData.source_type === 'regulatory' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="citation">Regulation Citation *</Label>
+                            <Input
+                              id="citation"
+                              value={formData.citation}
+                              onChange={(e) => setFormData(prev => ({ ...prev, citation: e.target.value }))}
+                              placeholder="e.g., ARM 37.107.402"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {formData.source_type === 'regulatory' && (
                         <div className="space-y-2">
-                          <Label htmlFor="citation">Regulation Citation</Label>
+                          <Label htmlFor="source_url">Source URL *</Label>
                           <Input
-                            id="citation"
-                            value={formData.citation}
-                            onChange={(e) => setFormData(prev => ({ ...prev, citation: e.target.value }))}
-                            placeholder="e.g., ARM 37.107.402"
+                            id="source_url"
+                            value={formData.source_url}
+                            onChange={(e) => setFormData(prev => ({ ...prev, source_url: e.target.value }))}
+                            placeholder="e.g., https://rules.mt.gov/gateway/ruleno.asp?RN=37.107.402"
                           />
                         </div>
-                      </div>
+                      )}
 
                       <div className="space-y-2">
                         <Label>Applicable Product Types</Label>
@@ -452,6 +518,7 @@ export default function ManageRules() {
                   <TableRow>
                     <TableHead>Active</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead>Source</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Severity</TableHead>
                     <TableHead>Citation</TableHead>
@@ -469,6 +536,19 @@ export default function ManageRules() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{rule.name}</TableCell>
+                      <TableCell>
+                        {rule.source_type === 'internal' ? (
+                          <Badge variant="outline" className="gap-1">
+                            <User className="w-3 h-3" />
+                            Internal
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1 border-chart-1/50 text-chart-1">
+                            <Globe className="w-3 h-3" />
+                            Regulatory
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{rule.category}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -477,11 +557,15 @@ export default function ManageRules() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm">
-                        <CitationLink 
-                          citation={rule.citation} 
-                          stateAbbreviation={states.find(s => s.id === selectedState)?.abbreviation || ''} 
-                          sourceUrl={rule.source_url}
-                        />
+                        {rule.source_type === 'internal' ? (
+                          <span className="text-muted-foreground text-xs">N/A</span>
+                        ) : (
+                          <CitationLink 
+                            citation={rule.citation} 
+                            stateAbbreviation={states.find(s => s.id === selectedState)?.abbreviation || ''} 
+                            sourceUrl={rule.source_url}
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">v{rule.version}</TableCell>
                       <TableCell>

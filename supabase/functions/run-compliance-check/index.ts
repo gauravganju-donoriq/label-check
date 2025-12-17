@@ -20,6 +20,8 @@ interface ComplianceCheckRequest {
     category: string;
     severity: string;
     citation: string | null;
+    source_url: string | null;
+    source_type: 'regulatory' | 'internal';
     validation_prompt: string;
   }>;
   customRules: Array<{
@@ -70,7 +72,8 @@ Return a JSON array with this structure for each rule:
     "foundValue": "what was found in the label data",
     "expectedValue": "what the rule requires",
     "explanation": "brief explanation of why this status was assigned",
-    "panelFound": "which panel type contains the relevant info (or 'not found')"
+    "panelFound": "which panel type contains the relevant info (or 'not found')",
+    "sourceType": "regulatory" or "internal" (copy from rule)
   }
 ]
 
@@ -100,6 +103,7 @@ Description: ${r.description}
 Validation Criteria: ${r.validation_prompt}
 Citation: ${r.citation || 'N/A'}
 Severity: ${r.severity}
+Source Type: ${r.source_type} (${r.source_type === 'regulatory' ? 'state law requirement' : 'internal SOP requirement'})
 ---`).join('\n')}
 
 ${customRules.length > 0 ? `
