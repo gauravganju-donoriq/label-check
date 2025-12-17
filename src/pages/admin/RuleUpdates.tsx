@@ -411,6 +411,7 @@ export default function RuleUpdates() {
                           citation={suggestion.suggested_citation} 
                           stateAbbreviation={suggestion.states?.abbreviation || ''} 
                           sourceUrl={suggestion.suggested_source_url}
+                          showVerificationBadge={true}
                         />
                       </p>
                     </div>
@@ -470,8 +471,15 @@ export default function RuleUpdates() {
                       citation={selectedSuggestion.suggested_citation} 
                       stateAbbreviation={selectedSuggestion.states?.abbreviation || ''} 
                       sourceUrl={selectedSuggestion.suggested_source_url}
+                      showVerificationBadge={true}
                     />
                   </p>
+                  {!selectedSuggestion.suggested_source_url && selectedSuggestion.status === 'pending' && (
+                    <p className="text-xs text-chart-4 mt-2 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Warning: No verified source URL. Consider rejecting or manually verifying.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
