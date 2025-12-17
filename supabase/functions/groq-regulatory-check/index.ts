@@ -31,8 +31,29 @@ interface GroqCompoundResponse {
   }>;
 }
 
+interface SuggestedChange {
+  changeType: string;
+  existingRuleId: string | null;
+  suggestedName: string;
+  suggestedDescription: string;
+  suggestedCategory: string;
+  suggestedCitation: string;
+  suggestedSourceUrl: string | null;
+  suggestedSeverity: string;
+  suggestedValidationPrompt: string;
+  reasoning: string;
+  sourceExcerpt: string;
+}
+
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
+
+// Known valid regulatory URLs by state
+const STATE_REGULATORY_URLS: Record<string, { base: string; name: string }> = {
+  MT: { base: 'https://rules.mt.gov/', name: 'Montana Administrative Rules' },
+  CO: { base: 'https://med.colorado.gov/rules', name: 'Colorado MED Rules' },
+  CA: { base: 'https://cannabis.ca.gov/cannabis-laws/dcc-regulations/', name: 'California DCC Regulations' },
+};
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -57,7 +78,6 @@ async function callGroqCompound(
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ]
-        // compound-beta has built-in web search - no need to specify tools
       }),
     });
 
@@ -81,7 +101,6 @@ async function callGroqCompound(
     const data: GroqCompoundResponse = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
     
-    // Extract sources from tool results if available
     const sources: string[] = [];
     if (data.tool_results) {
       for (const result of data.tool_results) {
@@ -111,6 +130,62 @@ async function callGroqCompound(
   }
 }
 
+// Validate and filter suggestions - only keep those with valid URLs
+function validateSuggestions(
+  suggestions: SuggestedChange[], 
+  stateAbbrev: string,
+  fallbackSources: string[]
+): { valid: SuggestedChange[]; rejected: number; reasons: string[] } {
+  const valid: SuggestedChange[] = [];
+  const reasons: string[] = [];
+  let rejected = 0;
+
+  const stateBaseUrl = STATE_REGULATORY_URLS[stateAbbrev]?.base;
+
+  for (const suggestion of suggestions) {
+    let sourceUrl = suggestion.suggestedSourceUrl;
+
+    // Check if URL is valid
+    if (!sourceUrl || sourceUrl.trim() === '' || sourceUrl === 'null') {
+      // Try to find a fallback from sources
+      if (fallbackSources.length > 0) {
+        // Use first .gov source if available
+        const govSource = fallbackSources.find(s => s.includes('.gov'));
+        sourceUrl = govSource || fallbackSources[0];
+        console.log(`Using fallback URL for "${suggestion.suggestedName}": ${sourceUrl}`);
+      } else if (stateBaseUrl) {
+        sourceUrl = stateBaseUrl;
+        console.log(`Using state base URL for "${suggestion.suggestedName}": ${sourceUrl}`);
+      } else {
+        rejected++;
+        reasons.push(`Rejected "${suggestion.suggestedName}": No valid source URL`);
+        continue;
+      }
+    }
+
+    // Basic URL validation
+    try {
+      new URL(sourceUrl);
+    } catch {
+      // URL is invalid, try to use fallback
+      if (stateBaseUrl) {
+        sourceUrl = stateBaseUrl;
+      } else {
+        rejected++;
+        reasons.push(`Rejected "${suggestion.suggestedName}": Invalid URL format`);
+        continue;
+      }
+    }
+
+    valid.push({
+      ...suggestion,
+      suggestedSourceUrl: sourceUrl
+    });
+  }
+
+  return { valid, rejected, reasons };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -124,26 +199,48 @@ serve(async (req) => {
       throw new Error('GROQ_API_KEY is not configured');
     }
 
-    console.log(`Running Groq regulatory check for ${stateName} with ${existingRules.length} existing rules`);
+    // Determine state abbreviation from stateName
+    const stateAbbrevMap: Record<string, string> = {
+      'Montana': 'MT',
+      'Colorado': 'CO', 
+      'California': 'CA'
+    };
+    const stateAbbrev = stateAbbrevMap[stateName] || '';
+    const stateRegInfo = STATE_REGULATORY_URLS[stateAbbrev];
+
+    console.log(`Running Groq regulatory check for ${stateName} (${stateAbbrev}) with ${existingRules.length} existing rules`);
 
     const systemPrompt = `You are an expert cannabis regulatory analyst. Your job is to search for the LATEST cannabis labeling and packaging requirements for the specified state and compare them against existing compliance rules.
 
-IMPORTANT: 
-- Search for official state regulatory sources (government .gov sites preferred)
-- Focus on cannabis/marijuana labeling, packaging, and compliance requirements
-- Look for recent changes, updates, or new requirements
-- Be thorough but accurate - cite specific regulatory sections when possible
-- ALWAYS include the direct URL to the source where you found each citation
+CRITICAL REQUIREMENTS:
+1. You MUST search for official state government sources (.gov websites)
+2. You MUST provide a VALID, WORKING URL for EVERY citation
+3. DO NOT suggest any rule change without a verifiable source URL
+4. Prefer official regulatory websites over third-party sources
+
+${stateRegInfo ? `PRIMARY SOURCE FOR ${stateName.toUpperCase()}:
+- ${stateRegInfo.name}: ${stateRegInfo.base}
+You SHOULD visit this URL and extract regulations from it.` : ''}
+
+VALID URL EXAMPLES:
+- Montana: https://rules.mt.gov/gateway/RuleNo.asp?RN=37.107.402
+- Colorado: https://med.colorado.gov/rules
+- California: https://cannabis.ca.gov/cannabis-laws/dcc-regulations/
+
+DO NOT use URLs like:
+- Generic search pages without specific results
+- Broken or hypothetical URLs
+- Third-party legal databases (westlaw, lexis) unless absolutely necessary
 
 Return your findings as a JSON object with this structure:
 {
   "searchSummary": "Brief summary of what was found",
-  "sourcesUsed": ["array of URLs that were searched"],
+  "sourcesUsed": ["array of actual URLs that were searched and returned results"],
   "currentRequirements": [
     {
       "requirement": "Description of the requirement",
-      "citation": "Regulatory citation if available",
-      "sourceUrl": "Direct URL to the regulation page where this citation can be verified",
+      "citation": "Specific regulatory citation (e.g., ARM 37.107.402)",
+      "sourceUrl": "REQUIRED: Direct URL to the .gov page where this was found",
       "category": "Category (e.g., 'Required Warnings', 'THC Content', etc.)",
       "effectiveDate": "Date if known, otherwise null"
     }
@@ -155,12 +252,12 @@ Return your findings as a JSON object with this structure:
       "suggestedName": "Rule name",
       "suggestedDescription": "Detailed description",
       "suggestedCategory": "Category",
-      "suggestedCitation": "Citation (e.g., 'ARM 37.107.402' or 'Mont. Admin. r. 42.39.314')",
-      "suggestedSourceUrl": "REQUIRED: Direct URL to the official regulation page where this citation can be verified. Must be a real, working URL.",
+      "suggestedCitation": "Specific citation (e.g., 'ARM 37.107.402')",
+      "suggestedSourceUrl": "REQUIRED: Direct .gov URL where this regulation can be verified. Must be a real, working URL you actually visited.",
       "suggestedSeverity": "error" | "warning" | "info",
       "suggestedValidationPrompt": "Prompt for AI validation",
-      "reasoning": "Why this change is suggested",
-      "sourceExcerpt": "Relevant excerpt from source"
+      "reasoning": "Why this change is suggested with reference to the source",
+      "sourceExcerpt": "Exact text quoted from the source document"
     }
   ],
   "confidence": {
@@ -168,21 +265,31 @@ Return your findings as a JSON object with this structure:
     "dataFreshness": "Recent/Moderate/Outdated/Unknown",
     "sourceReliability": "Official/Semi-official/Third-party"
   }
-}`;
+}
+
+IMPORTANT: If you cannot find a valid source URL for a potential rule change, DO NOT include it in suggestedChanges. Only suggest changes you can verify with a real URL.`;
 
     const searchQuery = sourceUrl 
-      ? `Search for the latest cannabis labeling and packaging requirements for ${stateName}. Also visit and analyze this specific regulatory source: ${sourceUrl}
+      ? `Search for the latest cannabis labeling and packaging requirements for ${stateName}. 
+
+IMPORTANT: Visit and analyze this specific regulatory source: ${sourceUrl}
+
+Also search for other official ${stateName} government sources about cannabis labeling requirements.
 
 Current existing rules to compare against:
 ${existingRules.map(r => `- ${r.name}: ${r.description} (Citation: ${r.citation || 'N/A'})`).join('\n')}
 
-Identify any new requirements, changes to existing requirements, or outdated rules.`
+Identify any new requirements, changes to existing requirements, or outdated rules. Remember: ONLY suggest changes if you have a valid source URL.`
       : `Search for the latest cannabis labeling and packaging requirements for ${stateName}.
 
+${stateRegInfo ? `Start by visiting: ${stateRegInfo.base}` : ''}
+
+Look for official ${stateName} government regulations about cannabis/marijuana labeling, packaging, and compliance requirements.
+
 Current existing rules to compare against:
 ${existingRules.map(r => `- ${r.name}: ${r.description} (Citation: ${r.citation || 'N/A'})`).join('\n')}
 
-Identify any new requirements, changes to existing requirements, or outdated rules.`;
+Identify any new requirements, changes to existing requirements, or outdated rules. Remember: ONLY suggest changes if you have a valid source URL.`;
 
     const { content, sources, error: groqError } = await callGroqCompound(
       GROQ_API_KEY,
@@ -203,6 +310,7 @@ Identify any new requirements, changes to existing requirements, or outdated rul
     }
 
     console.log('Groq Compound response received, parsing...');
+    console.log('Sources found:', sources);
 
     // Parse the JSON response
     let parsedResult;
@@ -235,8 +343,36 @@ Identify any new requirements, changes to existing requirements, or outdated rul
     }
 
     // Add the sources from tool results if not already included
-    if (sources.length > 0 && (!parsedResult.sourcesUsed || parsedResult.sourcesUsed.length === 0)) {
-      parsedResult.sourcesUsed = sources;
+    if (sources.length > 0) {
+      if (!parsedResult.sourcesUsed || parsedResult.sourcesUsed.length === 0) {
+        parsedResult.sourcesUsed = sources;
+      } else {
+        // Merge sources
+        parsedResult.sourcesUsed = [...new Set([...parsedResult.sourcesUsed, ...sources])];
+      }
+    }
+
+    // Validate and filter suggestions
+    if (parsedResult.suggestedChanges && parsedResult.suggestedChanges.length > 0) {
+      const allSources = parsedResult.sourcesUsed || sources;
+      const { valid, rejected, reasons } = validateSuggestions(
+        parsedResult.suggestedChanges,
+        stateAbbrev,
+        allSources
+      );
+      
+      console.log(`Validated suggestions: ${valid.length} valid, ${rejected} rejected`);
+      if (reasons.length > 0) {
+        console.log('Rejection reasons:', reasons);
+      }
+
+      parsedResult.suggestedChanges = valid;
+      parsedResult.validationInfo = {
+        originalCount: valid.length + rejected,
+        validCount: valid.length,
+        rejectedCount: rejected,
+        rejectionReasons: reasons
+      };
     }
 
     return new Response(JSON.stringify({

@@ -3,10 +3,13 @@
  * Resolves regulatory citations to clickable URLs based on state and citation format
  */
 
-interface CitationResult {
+export type VerificationStatus = 'verified' | 'search' | 'unverified';
+
+export interface CitationResult {
   url: string | null;
   displayText: string;
   isDirectLink: boolean; // true if URL goes directly to the citation, false if it's a search/general page
+  verificationStatus: VerificationStatus;
 }
 
 // State-specific citation patterns and URL resolvers
@@ -26,6 +29,7 @@ function resolveMontanaCitation(citation: string): CitationResult | null {
       url: `https://rules.mt.gov/gateway/RuleNo.asp?RN=${title}%2E${chapter}%2E${rule}`,
       displayText: citation,
       isDirectLink: true,
+      verificationStatus: 'verified',
     };
   }
 
@@ -36,6 +40,7 @@ function resolveMontanaCitation(citation: string): CitationResult | null {
       url: `https://rules.mt.gov/gateway/RuleNo.asp?RN=${title}%2E${chapter}%2E${rule}`,
       displayText: citation,
       isDirectLink: true,
+      verificationStatus: 'verified',
     };
   }
 
@@ -47,6 +52,7 @@ function resolveMontanaCitation(citation: string): CitationResult | null {
       url: `https://leg.mt.gov/bills/mca/title_${title.padStart(4, '0')}/chapter_${chapter.padStart(3, '0')}/part_0/section_${section.padStart(3, '0')}/0${title.padStart(2, '0')}${chapter.padStart(2, '0')}0${section.padStart(2, '0')}.html`,
       displayText: citation,
       isDirectLink: true,
+      verificationStatus: 'verified',
     };
   }
 
@@ -55,6 +61,7 @@ function resolveMontanaCitation(citation: string): CitationResult | null {
     url: `https://rules.mt.gov/gateway/Search.asp?txtSearchString=${encodeURIComponent(citation)}`,
     displayText: citation,
     isDirectLink: false,
+    verificationStatus: 'search',
   };
 }
 
@@ -63,23 +70,23 @@ function resolveColoradoCitation(citation: string): CitationResult | null {
   // Pattern: 1 CCR 212-3 or CCR 212-3
   const ccrMatch = citation.match(/(\d+)?\s*CCR\s*(\d+)-(\d+)/i);
   if (ccrMatch) {
-    const [, book, series, rule] = ccrMatch;
-    // Colorado Secretary of State CCR search
+    // Colorado Secretary of State CCR - link to MED rules page (more reliable)
     return {
-      url: `https://www.sos.state.co.us/CCR/DisplayRule.do?action=ruleinfo&ruleId=${series}&deptID=16`,
+      url: `https://med.colorado.gov/rules`,
       displayText: citation,
       isDirectLink: false,
+      verificationStatus: 'search',
     };
   }
 
   // Colorado Revised Statutes (CRS)
   const crsMatch = citation.match(/(?:C\.?R\.?S\.?|CRS)\s*§?\s*(\d+)-(\d+)-(\d+)/i);
   if (crsMatch) {
-    const [, title, article, section] = crsMatch;
     return {
       url: `https://leg.colorado.gov/colorado-revised-statutes`,
       displayText: citation,
       isDirectLink: false,
+      verificationStatus: 'search',
     };
   }
 
@@ -88,20 +95,50 @@ function resolveColoradoCitation(citation: string): CitationResult | null {
     url: `https://med.colorado.gov/rules`,
     displayText: citation,
     isDirectLink: false,
+    verificationStatus: 'search',
   };
 }
 
-// California citation resolver
+// California citation resolver - FIXED: Use official DCC URLs instead of broken Westlaw
 function resolveCaliforniaCitation(citation: string): CitationResult | null {
   // Pattern: Cal. Code Regs., tit. 4, § 15000 or CCR Title 4 Section 15000
   const calRegMatch = citation.match(/(?:Cal\.?\s*Code\s*Regs\.?,?\s*)?(?:tit\.?|title)\s*(\d+),?\s*§?\s*(\d+)/i);
   if (calRegMatch) {
     const [, title, section] = calRegMatch;
+    const sectionNum = parseInt(section, 10);
+    
+    // Cannabis regulations are in Title 4, sections 15000-17999
+    if (title === '4' && sectionNum >= 15000 && sectionNum <= 17999) {
+      // Use official DCC regulations page - this is the most reliable source
+      return {
+        url: `https://cannabis.ca.gov/cannabis-laws/dcc-regulations/`,
+        displayText: citation,
+        isDirectLink: false,
+        verificationStatus: 'search',
+      };
+    }
+    
+    // For other California Code sections, use California Legislative Info
     return {
-      url: `https://govt.westlaw.com/calregs/Document/I${section}?viewType=FullText&originationContext=documenttoc&transitionType=CategoryPageItem&contextData=(sc.Default)`,
+      url: `https://leginfo.legislature.ca.gov/faces/codes.xhtml`,
       displayText: citation,
       isDirectLink: false,
+      verificationStatus: 'search',
     };
+  }
+
+  // Direct section number pattern like "§ 15040" or "Section 15040"
+  const sectionMatch = citation.match(/(?:§|Section)\s*(\d+)/i);
+  if (sectionMatch) {
+    const sectionNum = parseInt(sectionMatch[1], 10);
+    if (sectionNum >= 15000 && sectionNum <= 17999) {
+      return {
+        url: `https://cannabis.ca.gov/cannabis-laws/dcc-regulations/`,
+        displayText: citation,
+        isDirectLink: false,
+        verificationStatus: 'search',
+      };
+    }
   }
 
   // Business & Professions Code
@@ -112,6 +149,7 @@ function resolveCaliforniaCitation(citation: string): CitationResult | null {
       url: `https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=BPC&sectionNum=${section}`,
       displayText: citation,
       isDirectLink: true,
+      verificationStatus: 'verified',
     };
   }
 
@@ -120,6 +158,7 @@ function resolveCaliforniaCitation(citation: string): CitationResult | null {
     url: `https://cannabis.ca.gov/cannabis-laws/dcc-regulations/`,
     displayText: citation,
     isDirectLink: false,
+    verificationStatus: 'search',
   };
 }
 
@@ -135,13 +174,21 @@ export function resolveCitation(
   stateAbbreviation: string,
   providedUrl?: string | null
 ): CitationResult {
-  // If we have a provided URL, use it
-  if (providedUrl) {
-    return {
-      url: providedUrl,
-      displayText: citation || 'View Source',
-      isDirectLink: true,
-    };
+  // If we have a provided URL, use it (verified by admin/AI)
+  if (providedUrl && providedUrl.trim() !== '') {
+    // Check if it's a valid URL
+    try {
+      new URL(providedUrl);
+      return {
+        url: providedUrl,
+        displayText: citation || 'View Source',
+        isDirectLink: true,
+        verificationStatus: 'verified',
+      };
+    } catch {
+      // Invalid URL, fall through to other methods
+      console.warn('Invalid provided URL:', providedUrl);
+    }
   }
 
   // No citation to resolve
@@ -150,6 +197,7 @@ export function resolveCitation(
       url: null,
       displayText: citation || 'N/A',
       isDirectLink: false,
+      verificationStatus: 'unverified',
     };
   }
 
@@ -170,6 +218,7 @@ export function resolveCitation(
       url: `https://www.law.cornell.edu/cfr/text/${title}/${part}.${section}`,
       displayText: citation,
       isDirectLink: true,
+      verificationStatus: 'verified',
     };
   }
 
@@ -179,14 +228,16 @@ export function resolveCitation(
       url: citation,
       displayText: 'View Source',
       isDirectLink: true,
+      verificationStatus: 'verified',
     };
   }
 
-  // No resolver found - return citation without URL
+  // No resolver found - return citation without URL (unverified)
   return {
     url: null,
     displayText: citation,
     isDirectLink: false,
+    verificationStatus: 'unverified',
   };
 }
 
@@ -206,8 +257,6 @@ export const stateRegulatoryUrls: Record<string, { name: string; url: string }[]
   ],
   CA: [
     { name: 'California DCC Regulations', url: 'https://cannabis.ca.gov/cannabis-laws/dcc-regulations/' },
-    { name: 'California Code of Regulations', url: 'https://govt.westlaw.com/calregs/' },
+    { name: 'California Legislative Info', url: 'https://leginfo.legislature.ca.gov/faces/codes.xhtml' },
   ],
 };
-
-export type { CitationResult };
