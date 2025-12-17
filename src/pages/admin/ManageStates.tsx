@@ -47,15 +47,21 @@ interface ScrapeResult {
 
 interface GroqCheckResult {
   success: boolean;
+  stateId?: string;
   stateName: string;
   searchSummary?: string;
   sourcesUsed?: string[];
   suggestedChanges?: Array<{
     changeType: string;
+    existingRuleId?: string | null;
     suggestedName: string;
     suggestedDescription: string;
-    suggestedCategory: string;
-    reasoning: string;
+    suggestedCategory?: string;
+    suggestedCitation?: string;
+    suggestedSeverity?: string;
+    suggestedValidationPrompt?: string;
+    reasoning?: string;
+    sourceExcerpt?: string;
   }>;
   confidence?: {
     overall: number;
@@ -84,6 +90,7 @@ export default function ManageStates() {
   const [groqCheckingStateId, setGroqCheckingStateId] = useState<string | null>(null);
   const [groqResult, setGroqResult] = useState<GroqCheckResult | null>(null);
   const [showGroqDialog, setShowGroqDialog] = useState(false);
+  const [isSavingSuggestions, setIsSavingSuggestions] = useState(false);
 
   useEffect(() => {
     fetchStates();
@@ -363,6 +370,51 @@ export default function ManageStates() {
       });
     } finally {
       setGroqCheckingStateId(null);
+    }
+  }
+
+  async function applySuggestions() {
+    if (!groqResult?.suggestedChanges?.length || !groqResult.stateId) {
+      toast({ title: 'No suggestions', description: 'No suggestions to apply', variant: 'destructive' });
+      return;
+    }
+
+    setIsSavingSuggestions(true);
+    try {
+      const suggestions = groqResult.suggestedChanges.map(change => ({
+        state_id: groqResult.stateId!,
+        change_type: change.changeType === 'new' ? 'add' : change.changeType === 'removal' ? 'remove' : change.changeType,
+        existing_rule_id: change.existingRuleId || null,
+        suggested_name: change.suggestedName,
+        suggested_description: change.suggestedDescription,
+        suggested_category: change.suggestedCategory || null,
+        suggested_citation: change.suggestedCitation || null,
+        suggested_severity: change.suggestedSeverity || null,
+        suggested_validation_prompt: change.suggestedValidationPrompt || null,
+        ai_reasoning: change.reasoning || null,
+        source_excerpt: change.sourceExcerpt || null,
+        status: 'pending'
+      }));
+
+      const { error } = await supabase
+        .from('rule_change_suggestions')
+        .insert(suggestions);
+
+      if (error) throw error;
+
+      toast({ 
+        title: 'Suggestions Saved', 
+        description: `${suggestions.length} suggestion(s) added to Rule Updates queue for review` 
+      });
+      setShowGroqDialog(false);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to save suggestions',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSavingSuggestions(false);
     }
   }
 
@@ -749,8 +801,17 @@ export default function ManageStates() {
               )}
             </div>
           )}
-          <DialogFooter>
-            <Button onClick={() => setShowGroqDialog(false)}>Close</Button>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowGroqDialog(false)}>Close</Button>
+            {groqResult?.suggestedChanges && groqResult.suggestedChanges.length > 0 && (
+              <Button 
+                onClick={applySuggestions} 
+                disabled={isSavingSuggestions}
+              >
+                {isSavingSuggestions && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Apply {groqResult.suggestedChanges.length} Suggestion{groqResult.suggestedChanges.length > 1 ? 's' : ''}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
