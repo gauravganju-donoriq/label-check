@@ -58,6 +58,7 @@ interface GroqCheckResult {
     suggestedDescription: string;
     suggestedCategory?: string;
     suggestedCitation?: string;
+    suggestedSourceUrl?: string;
     suggestedSeverity?: string;
     suggestedValidationPrompt?: string;
     reasoning?: string;
@@ -389,6 +390,7 @@ export default function ManageStates() {
         suggested_description: change.suggestedDescription,
         suggested_category: change.suggestedCategory || null,
         suggested_citation: change.suggestedCitation || null,
+        suggested_source_url: change.suggestedSourceUrl || null,
         suggested_severity: change.suggestedSeverity || null,
         suggested_validation_prompt: change.suggestedValidationPrompt || null,
         ai_reasoning: change.reasoning || null,

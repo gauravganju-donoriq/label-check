@@ -152,6 +152,7 @@ export type Database = {
           name: string
           product_types: Database["public"]["Enums"]["product_type"][] | null
           severity: Database["public"]["Enums"]["compliance_severity"]
+          source_url: string | null
           state_id: string
           updated_at: string
           validation_prompt: string
@@ -167,6 +168,7 @@ export type Database = {
           name: string
           product_types?: Database["public"]["Enums"]["product_type"][] | null
           severity?: Database["public"]["Enums"]["compliance_severity"]
+          source_url?: string | null
           state_id: string
           updated_at?: string
           validation_prompt: string
@@ -182,6 +184,7 @@ export type Database = {
           name?: string
           product_types?: Database["public"]["Enums"]["product_type"][] | null
           severity?: Database["public"]["Enums"]["compliance_severity"]
+          source_url?: string | null
           state_id?: string
           updated_at?: string
           validation_prompt?: string
@@ -457,6 +460,7 @@ export type Database = {
           suggested_description: string
           suggested_name: string
           suggested_severity: string | null
+          suggested_source_url: string | null
           suggested_validation_prompt: string | null
         }
         Insert: {
@@ -477,6 +481,7 @@ export type Database = {
           suggested_description: string
           suggested_name: string
           suggested_severity?: string | null
+          suggested_source_url?: string | null
           suggested_validation_prompt?: string | null
         }
         Update: {
@@ -497,6 +502,7 @@ export type Database = {
           suggested_description?: string
           suggested_name?: string
           suggested_severity?: string | null
+          suggested_source_url?: string | null
           suggested_validation_prompt?: string | null
         }
         Relationships: [

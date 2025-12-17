@@ -19,6 +19,7 @@ export interface ComplianceRule {
   category: string;
   severity: ComplianceSeverity;
   citation: string | null;
+  source_url: string | null;
   product_types: ProductType[];
   validation_prompt: string;
   is_active: boolean;
