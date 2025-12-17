@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.firecrawl-scrape]
 verify_jwt = false
+
+[functions.groq-regulatory-check]
+verify_jwt = false

@@ -90,7 +90,17 @@ Return a JSON object with this structure:
     "overallContrast": "good/fair/poor"
   },
   "additionalNotes": "any other relevant observations",
-  "rawTextExtracted": "all text visible on the label in reading order"
+  "rawTextExtracted": "all text visible on the label in reading order",
+  "extractionConfidence": {
+    "overall": 0.0-1.0,
+    "thcContent": 0.0-1.0,
+    "warnings": 0.0-1.0,
+    "netWeight": 0.0-1.0,
+    "manufacturerInfo": 0.0-1.0,
+    "ingredients": 0.0-1.0
+  },
+  "flaggedForReview": true/false,
+  "reviewReasons": ["array of reasons if flagged, e.g., 'Image quality poor', 'Text partially obscured'"]
 }`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -162,10 +172,33 @@ Return a JSON object with this structure:
       extractedData = { rawTextExtracted: content, parseError: true };
     }
 
+    // Calculate if review is needed based on confidence scores
+    const confidence = extractedData?.extractionConfidence || {};
+    const lowConfidenceThreshold = 0.85;
+    const flaggedForReview = extractedData?.flaggedForReview || 
+      Object.values(confidence).some((v: unknown) => typeof v === 'number' && v < lowConfidenceThreshold);
+    
+    const reviewReasons = extractedData?.reviewReasons || [];
+    if (!extractedData?.reviewReasons) {
+      for (const [key, value] of Object.entries(confidence)) {
+        if (typeof value === 'number' && value < lowConfidenceThreshold) {
+          reviewReasons.push(`Low confidence in ${key}: ${(value * 100).toFixed(0)}%`);
+        }
+      }
+    }
+
     return new Response(JSON.stringify({ 
       success: true, 
-      extractedData,
-      panelType 
+      extractedData: {
+        ...extractedData,
+        flaggedForReview,
+        reviewReasons
+      },
+      panelType,
+      confidence: {
+        overall: confidence.overall || 0.9,
+        details: confidence
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

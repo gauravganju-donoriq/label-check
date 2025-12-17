@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, Plus, Edit, Trash2, ExternalLink, Loader2, Globe, RefreshCw } from 'lucide-react';
+import { AlertCircle, Plus, Edit, Trash2, ExternalLink, Loader2, Globe, RefreshCw, Search, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface State {
@@ -45,6 +45,26 @@ interface ScrapeResult {
   error?: string;
 }
 
+interface GroqCheckResult {
+  success: boolean;
+  stateName: string;
+  searchSummary?: string;
+  sourcesUsed?: string[];
+  suggestedChanges?: Array<{
+    changeType: string;
+    suggestedName: string;
+    suggestedDescription: string;
+    suggestedCategory: string;
+    reasoning: string;
+  }>;
+  confidence?: {
+    overall: number;
+    dataFreshness: string;
+    sourceReliability: string;
+  };
+  error?: string;
+}
+
 export default function ManageStates() {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
@@ -61,6 +81,9 @@ export default function ManageStates() {
   const [scrapingSourceId, setScrapingSourceId] = useState<string | null>(null);
   const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null);
   const [showScrapeDialog, setShowScrapeDialog] = useState(false);
+  const [groqCheckingStateId, setGroqCheckingStateId] = useState<string | null>(null);
+  const [groqResult, setGroqResult] = useState<GroqCheckResult | null>(null);
+  const [showGroqDialog, setShowGroqDialog] = useState(false);
 
   useEffect(() => {
     fetchStates();
@@ -291,6 +314,58 @@ export default function ManageStates() {
     }
   }
 
+  async function runGroqCheck(state: State) {
+    setGroqCheckingStateId(state.id);
+    setGroqResult(null);
+
+    try {
+      // Fetch existing rules for this state
+      const { data: existingRules } = await supabase
+        .from('compliance_rules')
+        .select('id, name, description, category, citation')
+        .eq('state_id', state.id)
+        .eq('is_active', true);
+
+      const stateSources = getStateSources(state.id);
+      const primarySourceUrl = stateSources.find(s => s.is_active)?.source_url;
+
+      const { data, error } = await supabase.functions.invoke('groq-regulatory-check', {
+        body: {
+          stateId: state.id,
+          stateName: state.name,
+          sourceUrl: primarySourceUrl,
+          existingRules: existingRules || []
+        }
+      });
+
+      if (error) throw error;
+
+      setGroqResult(data as GroqCheckResult);
+      setShowGroqDialog(true);
+      
+      if (data.success) {
+        toast({ 
+          title: 'Groq Check Complete', 
+          description: `Found ${data.suggestedChanges?.length || 0} potential rule updates` 
+        });
+      }
+    } catch (error) {
+      setGroqResult({
+        success: false,
+        stateName: state.name,
+        error: error instanceof Error ? error.message : 'Failed to run Groq check'
+      });
+      setShowGroqDialog(true);
+      toast({ 
+        title: 'Groq Check Failed', 
+        description: error instanceof Error ? error.message : 'Failed to run check', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setGroqCheckingStateId(null);
+    }
+  }
+
   if (!isAdmin) {
     return (
       <AppLayout>
@@ -341,6 +416,20 @@ export default function ManageStates() {
                       />
                       <Button variant="ghost" size="sm" onClick={() => openEditState(state)}>
                         <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => runGroqCheck(state)}
+                        disabled={groqCheckingStateId === state.id}
+                        title="Check regulations with Groq AI"
+                      >
+                        {groqCheckingStateId === state.id ? (
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        ) : (
+                          <Zap className="w-4 h-4 mr-1" />
+                        )}
+                        AI Check
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => openAddSource(state)}>
                         <Globe className="w-4 h-4 mr-1" /> Add Source
@@ -570,6 +659,98 @@ export default function ManageStates() {
           )}
           <DialogFooter>
             <Button onClick={() => setShowScrapeDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Groq Check Results Dialog */}
+      <Dialog open={showGroqDialog} onOpenChange={setShowGroqDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              AI Regulatory Check Results
+            </DialogTitle>
+            <DialogDescription>
+              {groqResult?.stateName} - Powered by Groq Compound
+            </DialogDescription>
+          </DialogHeader>
+          {groqResult && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Badge variant={groqResult.success ? 'default' : 'destructive'}>
+                  {groqResult.success ? 'Success' : 'Failed'}
+                </Badge>
+                {groqResult.confidence && (
+                  <span className="text-sm text-muted-foreground">
+                    Confidence: {(groqResult.confidence.overall * 100).toFixed(0)}% • {groqResult.confidence.dataFreshness} • {groqResult.confidence.sourceReliability}
+                  </span>
+                )}
+              </div>
+
+              {groqResult.error && (
+                <div className="p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+                  {groqResult.error}
+                </div>
+              )}
+
+              {groqResult.searchSummary && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Summary</p>
+                  <p className="text-sm text-muted-foreground">{groqResult.searchSummary}</p>
+                </div>
+              )}
+
+              {groqResult.sourcesUsed && groqResult.sourcesUsed.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Sources Used</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    {groqResult.sourcesUsed.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-foreground transition-colors">
+                        <ExternalLink className="w-3 h-3" /> {url}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {groqResult.suggestedChanges && groqResult.suggestedChanges.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Suggested Rule Changes ({groqResult.suggestedChanges.length})</p>
+                  <ScrollArea className="h-64 rounded-md border">
+                    <div className="p-3 space-y-3">
+                      {groqResult.suggestedChanges.map((change, i) => (
+                        <div key={i} className="p-3 border border-border rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant={change.changeType === 'new' ? 'default' : change.changeType === 'update' ? 'secondary' : 'destructive'}>
+                              {change.changeType}
+                            </Badge>
+                            <span className="font-medium text-sm">{change.suggestedName}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">{change.suggestedDescription}</p>
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-medium">Category:</span> {change.suggestedCategory} • <span className="font-medium">Reasoning:</span> {change.reasoning}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                  <p className="text-xs text-muted-foreground">
+                    These are AI-generated suggestions. Review carefully before applying to the Rule Updates queue.
+                  </p>
+                </div>
+              )}
+
+              {groqResult.suggestedChanges?.length === 0 && groqResult.success && (
+                <div className="p-4 text-center text-muted-foreground">
+                  <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>No rule changes suggested. Your rules appear to be up-to-date.</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setShowGroqDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
