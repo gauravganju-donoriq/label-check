@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.groq-regulatory-check]
 verify_jwt = false
+
+[functions.openai-regulatory-search]
+verify_jwt = false
