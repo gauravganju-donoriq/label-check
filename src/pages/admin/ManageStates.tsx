@@ -97,7 +97,7 @@ export default function ManageStates() {
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   const [deleteCounts, setDeleteCounts] = useState({ rules: 0, sources: 0, suggestions: 0, auditLogs: 0 });
   const [isDeleting, setIsDeleting] = useState(false);
-  const [openaiSearchingStateId, setOpenaiSearchingStateId] = useState<string | null>(null);
+  const [perplexitySearchingStateId, setPerplexitySearchingStateId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStates();
@@ -501,8 +501,8 @@ export default function ManageStates() {
     }
   }
 
-  async function runOpenAIDeepSearch(state: State) {
-    setOpenaiSearchingStateId(state.id);
+  async function runPerplexitySearch(state: State) {
+    setPerplexitySearchingStateId(state.id);
 
     try {
       // Fetch existing rules for this state
@@ -514,7 +514,7 @@ export default function ManageStates() {
 
       const stateSources = getStateSources(state.id);
 
-      const { data, error } = await supabase.functions.invoke('openai-regulatory-search', {
+      const { data, error } = await supabase.functions.invoke('perplexity-regulatory-search', {
         body: {
           stateId: state.id,
           stateName: state.name,
@@ -541,7 +541,7 @@ export default function ManageStates() {
         variant: 'destructive' 
       });
     } finally {
-      setOpenaiSearchingStateId(null);
+      setPerplexitySearchingStateId(null);
     }
   }
 
@@ -608,7 +608,7 @@ export default function ManageStates() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => runGroqCheck(state)}
-                        disabled={groqCheckingStateId === state.id || openaiSearchingStateId === state.id}
+                        disabled={groqCheckingStateId === state.id || perplexitySearchingStateId === state.id}
                         title="Quick check with Groq AI"
                       >
                         {groqCheckingStateId === state.id ? (
@@ -621,11 +621,11 @@ export default function ManageStates() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => runOpenAIDeepSearch(state)}
-                        disabled={openaiSearchingStateId === state.id || groqCheckingStateId === state.id}
-                        title="Deep search with OpenAI web search (verified citations)"
+                        onClick={() => runPerplexitySearch(state)}
+                        disabled={perplexitySearchingStateId === state.id || groqCheckingStateId === state.id}
+                        title="Deep search with Perplexity AI (verified citations)"
                       >
-                        {openaiSearchingStateId === state.id ? (
+                        {perplexitySearchingStateId === state.id ? (
                           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                         ) : (
                           <Search className="w-4 h-4 mr-1" />
