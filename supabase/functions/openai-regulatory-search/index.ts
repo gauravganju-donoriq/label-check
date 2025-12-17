@@ -116,7 +116,7 @@ For each finding, provide the exact regulatory citation (e.g., "ARM 37.107.406")
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-search-api-2025-10-14',
         tools: [{
           type: 'web_search',
           search_context_size: 'high',
