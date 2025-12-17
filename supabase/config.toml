@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.openai-regulatory-search]
 verify_jwt = false
+
+[functions.perplexity-regulatory-search]
+verify_jwt = false
