@@ -97,6 +97,7 @@ export default function ManageStates() {
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   const [deleteCounts, setDeleteCounts] = useState({ rules: 0, sources: 0, suggestions: 0, auditLogs: 0 });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [openaiSearchingStateId, setOpenaiSearchingStateId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStates();
@@ -500,6 +501,50 @@ export default function ManageStates() {
     }
   }
 
+  async function runOpenAIDeepSearch(state: State) {
+    setOpenaiSearchingStateId(state.id);
+
+    try {
+      // Fetch existing rules for this state
+      const { data: existingRules } = await supabase
+        .from('compliance_rules')
+        .select('id, name, description, category, citation')
+        .eq('state_id', state.id)
+        .eq('is_active', true);
+
+      const stateSources = getStateSources(state.id);
+
+      const { data, error } = await supabase.functions.invoke('openai-regulatory-search', {
+        body: {
+          stateId: state.id,
+          stateName: state.name,
+          stateAbbreviation: state.abbreviation,
+          existingRules: existingRules || [],
+          regulatorySources: stateSources
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({ 
+          title: 'Deep Search Complete', 
+          description: `Found ${data.suggestionsCount} verified suggestions with ${data.citationsCount} citations. Check Rule Updates to review.`
+        });
+      } else {
+        throw new Error(data.error || 'Deep search failed');
+      }
+    } catch (error) {
+      toast({ 
+        title: 'Deep Search Failed', 
+        description: error instanceof Error ? error.message : 'Failed to run deep search', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setOpenaiSearchingStateId(null);
+    }
+  }
+
   if (!isAdmin) {
     return (
       <AppLayout>
@@ -563,15 +608,29 @@ export default function ManageStates() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => runGroqCheck(state)}
-                        disabled={groqCheckingStateId === state.id}
-                        title="Check regulations with Groq AI"
+                        disabled={groqCheckingStateId === state.id || openaiSearchingStateId === state.id}
+                        title="Quick check with Groq AI"
                       >
                         {groqCheckingStateId === state.id ? (
                           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                         ) : (
                           <Zap className="w-4 h-4 mr-1" />
                         )}
-                        AI Check
+                        Quick Check
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => runOpenAIDeepSearch(state)}
+                        disabled={openaiSearchingStateId === state.id || groqCheckingStateId === state.id}
+                        title="Deep search with OpenAI web search (verified citations)"
+                      >
+                        {openaiSearchingStateId === state.id ? (
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        ) : (
+                          <Search className="w-4 h-4 mr-1" />
+                        )}
+                        Deep Search
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => openAddSource(state)}>
                         <Globe className="w-4 h-4 mr-1" /> Add Source
