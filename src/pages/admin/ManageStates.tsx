@@ -92,6 +92,11 @@ export default function ManageStates() {
   const [groqResult, setGroqResult] = useState<GroqCheckResult | null>(null);
   const [showGroqDialog, setShowGroqDialog] = useState(false);
   const [isSavingSuggestions, setIsSavingSuggestions] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [stateToDelete, setStateToDelete] = useState<State | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
+  const [deleteCounts, setDeleteCounts] = useState({ rules: 0, sources: 0, suggestions: 0, auditLogs: 0 });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchStates();
@@ -273,6 +278,81 @@ export default function ManageStates() {
 
   function getStateSources(stateId: string) {
     return sources.filter(s => s.state_id === stateId);
+  }
+
+  async function openDeleteConfirmation(state: State) {
+    // Check if state has compliance_checks (user data)
+    const { count: checksCount } = await supabase
+      .from('compliance_checks')
+      .select('*', { count: 'exact', head: true })
+      .eq('state_id', state.id);
+
+    if (checksCount && checksCount > 0) {
+      toast({
+        title: 'Cannot Delete State',
+        description: `${state.name} has ${checksCount} compliance check(s) in user history. Disable the state instead, or delete the checks first.`,
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Get counts of what will be deleted
+    const [rulesRes, sourcesRes, suggestionsRes, auditRes] = await Promise.all([
+      supabase.from('compliance_rules').select('*', { count: 'exact', head: true }).eq('state_id', state.id),
+      supabase.from('regulatory_sources').select('*', { count: 'exact', head: true }).eq('state_id', state.id),
+      supabase.from('rule_change_suggestions').select('*', { count: 'exact', head: true }).eq('state_id', state.id),
+      supabase.from('rule_audit_log').select('*', { count: 'exact', head: true }).eq('state_id', state.id)
+    ]);
+
+    setDeleteCounts({
+      rules: rulesRes.count || 0,
+      sources: sourcesRes.count || 0,
+      suggestions: suggestionsRes.count || 0,
+      auditLogs: auditRes.count || 0
+    });
+
+    setStateToDelete(state);
+    setDeleteConfirmInput('');
+    setShowDeleteDialog(true);
+  }
+
+  async function deleteState() {
+    if (!stateToDelete || deleteConfirmInput !== stateToDelete.name) return;
+
+    setIsDeleting(true);
+    try {
+      // Delete in correct order to respect foreign key constraints
+      // 1. Delete audit logs
+      await supabase.from('rule_audit_log').delete().eq('state_id', stateToDelete.id);
+      
+      // 2. Delete rule change suggestions
+      await supabase.from('rule_change_suggestions').delete().eq('state_id', stateToDelete.id);
+      
+      // 3. Delete compliance rules
+      await supabase.from('compliance_rules').delete().eq('state_id', stateToDelete.id);
+      
+      // 4. Delete regulatory sources
+      await supabase.from('regulatory_sources').delete().eq('state_id', stateToDelete.id);
+      
+      // 5. Delete the state itself
+      const { error } = await supabase.from('states').delete().eq('id', stateToDelete.id);
+      
+      if (error) throw error;
+
+      toast({ title: 'Deleted', description: `${stateToDelete.name} and all related data have been deleted` });
+      setShowDeleteDialog(false);
+      setStateToDelete(null);
+      fetchStates();
+      fetchSources();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to delete state',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   async function scrapeSource(source: RegulatorySource) {
@@ -470,6 +550,14 @@ export default function ManageStates() {
                       />
                       <Button variant="ghost" size="sm" onClick={() => openEditState(state)}>
                         <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openDeleteConfirmation(state)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                       <Button 
                         variant="outline" 
@@ -814,6 +902,51 @@ export default function ManageStates() {
                 Apply {groqResult.suggestedChanges.length} Suggestion{groqResult.suggestedChanges.length > 1 ? 's' : ''}
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete State Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="w-5 h-5" />
+              Delete {stateToDelete?.name} Permanently?
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="p-3 bg-destructive/10 rounded-md space-y-2 text-sm">
+              <p className="font-medium text-foreground">The following will be permanently deleted:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>{deleteCounts.rules} compliance rule{deleteCounts.rules !== 1 ? 's' : ''}</li>
+                <li>{deleteCounts.sources} regulatory source{deleteCounts.sources !== 1 ? 's' : ''}</li>
+                <li>{deleteCounts.suggestions} pending rule suggestion{deleteCounts.suggestions !== 1 ? 's' : ''}</li>
+                <li>{deleteCounts.auditLogs} audit log entr{deleteCounts.auditLogs !== 1 ? 'ies' : 'y'}</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <Label>Type "{stateToDelete?.name}" to confirm:</Label>
+              <Input
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                placeholder={stateToDelete?.name}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
+            <Button 
+              variant="destructive" 
+              onClick={deleteState} 
+              disabled={isDeleting || deleteConfirmInput !== stateToDelete?.name}
+            >
+              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Delete State
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
