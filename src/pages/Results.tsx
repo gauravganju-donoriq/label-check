@@ -29,6 +29,8 @@ import {
   ExternalLink,
   Info,
   ShieldAlert,
+  Globe,
+  User,
 } from 'lucide-react';
 
 export default function Results() {
@@ -309,12 +311,25 @@ export default function Results() {
                                         <p className="font-medium text-sm">
                                           {result.compliance_rules?.name || 'Custom Rule'}
                                         </p>
-                                        {result.citation && (
-                                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                            <ExternalLink className="w-3 h-3" />
-                                            {result.citation}
-                                          </p>
-                                        )}
+                                        <div className="flex items-center gap-2 mt-1">
+                                          {result.compliance_rules?.source_type === 'internal' ? (
+                                            <Badge variant="outline" className="text-xs gap-1 h-5">
+                                              <User className="w-3 h-3" />
+                                              Internal SOP
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="text-xs gap-1 h-5 border-chart-1/50 text-chart-1">
+                                              <Globe className="w-3 h-3" />
+                                              Regulatory
+                                            </Badge>
+                                          )}
+                                          {result.citation && result.compliance_rules?.source_type !== 'internal' && (
+                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                              <ExternalLink className="w-3 h-3" />
+                                              {result.citation}
+                                            </p>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                     {getStatusBadge(result.status)}

@@ -152,6 +152,7 @@ export type Database = {
           name: string
           product_types: Database["public"]["Enums"]["product_type"][] | null
           severity: Database["public"]["Enums"]["compliance_severity"]
+          source_type: Database["public"]["Enums"]["rule_source_type"]
           source_url: string | null
           state_id: string
           updated_at: string
@@ -168,6 +169,7 @@ export type Database = {
           name: string
           product_types?: Database["public"]["Enums"]["product_type"][] | null
           severity?: Database["public"]["Enums"]["compliance_severity"]
+          source_type?: Database["public"]["Enums"]["rule_source_type"]
           source_url?: string | null
           state_id: string
           updated_at?: string
@@ -184,6 +186,7 @@ export type Database = {
           name?: string
           product_types?: Database["public"]["Enums"]["product_type"][] | null
           severity?: Database["public"]["Enums"]["compliance_severity"]
+          source_type?: Database["public"]["Enums"]["rule_source_type"]
           source_url?: string | null
           state_id?: string
           updated_at?: string
@@ -609,6 +612,7 @@ export type Database = {
         | "tinctures"
         | "pre_rolls"
         | "other"
+      rule_source_type: "regulatory" | "internal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -756,6 +760,7 @@ export const Constants = {
         "pre_rolls",
         "other",
       ],
+      rule_source_type: ["regulatory", "internal"],
     },
   },
 } as const

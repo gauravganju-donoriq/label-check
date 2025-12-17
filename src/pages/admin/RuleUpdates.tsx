@@ -151,7 +151,8 @@ export default function RuleUpdates() {
             citation: suggestion.suggested_citation,
             source_url: suggestion.suggested_source_url,
             validation_prompt: suggestion.suggested_validation_prompt || suggestion.suggested_description,
-            is_active: true
+            is_active: true,
+            source_type: 'regulatory' // AI-suggested rules are always regulatory
           })
           .select()
           .single();
