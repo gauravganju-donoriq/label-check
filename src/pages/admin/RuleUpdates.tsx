@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, Check, X, AlertCircle, Clock, Loader2, Eye } from 'lucide-react';
 import { format } from 'date-fns';
+import { CitationLink } from '@/components/CitationLink';
 
 interface State {
   id: string;
@@ -24,13 +25,14 @@ interface RuleSuggestion {
   state_id: string;
   source_id: string | null;
   existing_rule_id: string | null;
-  change_type: 'new' | 'update' | 'deprecate';
+  change_type: 'new' | 'update' | 'deprecate' | 'add' | 'remove';
   suggested_name: string;
   suggested_description: string;
   suggested_category: string | null;
   suggested_severity: string | null;
   suggested_validation_prompt: string | null;
   suggested_citation: string | null;
+  suggested_source_url: string | null;
   ai_reasoning: string | null;
   source_excerpt: string | null;
   status: 'pending' | 'approved' | 'rejected';
@@ -137,7 +139,7 @@ export default function RuleUpdates() {
   async function handleApprove(suggestion: RuleSuggestion) {
     setIsProcessing(true);
     try {
-      if (suggestion.change_type === 'new') {
+      if (suggestion.change_type === 'new' || suggestion.change_type === 'add') {
         const { data: newRule, error: createError } = await supabase
           .from('compliance_rules')
           .insert({
@@ -147,6 +149,7 @@ export default function RuleUpdates() {
             category: suggestion.suggested_category || 'General',
             severity: (suggestion.suggested_severity as 'error' | 'warning' | 'info') || 'warning',
             citation: suggestion.suggested_citation,
+            source_url: suggestion.suggested_source_url,
             validation_prompt: suggestion.suggested_validation_prompt || suggestion.suggested_description,
             is_active: true
           })
@@ -279,11 +282,13 @@ export default function RuleUpdates() {
   function getChangeTypeBadge(type: string) {
     switch (type) {
       case 'new':
+      case 'add':
         return <Badge className="bg-chart-2">New Rule</Badge>;
       case 'update':
         return <Badge className="bg-blue-500">Update</Badge>;
       case 'deprecate':
-        return <Badge variant="destructive">Deprecate</Badge>;
+      case 'remove':
+        return <Badge variant="destructive">Remove</Badge>;
       default:
         return <Badge>{type}</Badge>;
     }
@@ -401,7 +406,13 @@ export default function RuleUpdates() {
                     </div>
                     <div>
                       <span className="text-muted-foreground text-xs">Citation</span>
-                      <p className="font-medium">{suggestion.suggested_citation || 'N/A'}</p>
+                      <p className="font-medium">
+                        <CitationLink 
+                          citation={suggestion.suggested_citation} 
+                          stateAbbreviation={suggestion.states?.abbreviation || ''} 
+                          sourceUrl={suggestion.suggested_source_url}
+                        />
+                      </p>
                     </div>
                     <div>
                       <span className="text-muted-foreground text-xs">Created</span>
@@ -453,7 +464,14 @@ export default function RuleUpdates() {
                   <p><span className="text-muted-foreground">Description:</span> {selectedSuggestion.suggested_description}</p>
                   <p><span className="text-muted-foreground">Category:</span> {selectedSuggestion.suggested_category || 'N/A'}</p>
                   <p><span className="text-muted-foreground">Severity:</span> {selectedSuggestion.suggested_severity || 'N/A'}</p>
-                  <p><span className="text-muted-foreground">Citation:</span> {selectedSuggestion.suggested_citation || 'N/A'}</p>
+                  <p>
+                    <span className="text-muted-foreground">Citation:</span>{' '}
+                    <CitationLink 
+                      citation={selectedSuggestion.suggested_citation} 
+                      stateAbbreviation={selectedSuggestion.states?.abbreviation || ''} 
+                      sourceUrl={selectedSuggestion.suggested_source_url}
+                    />
+                  </p>
                 </CardContent>
               </Card>
 

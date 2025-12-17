@@ -46,6 +46,7 @@ import {
   Info,
   Loader2,
 } from 'lucide-react';
+import { CitationLink } from '@/components/CitationLink';
 
 export default function ManageRules() {
   const { isAdmin } = useAuth();
@@ -475,7 +476,13 @@ export default function ManageRules() {
                           <span className="capitalize text-sm">{rule.severity}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{rule.citation || '-'}</TableCell>
+                      <TableCell className="text-sm">
+                        <CitationLink 
+                          citation={rule.citation} 
+                          stateAbbreviation={states.find(s => s.id === selectedState)?.abbreviation || ''} 
+                          sourceUrl={rule.source_url}
+                        />
+                      </TableCell>
                       <TableCell className="text-muted-foreground">v{rule.version}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">

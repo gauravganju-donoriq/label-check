@@ -133,6 +133,7 @@ IMPORTANT:
 - Focus on cannabis/marijuana labeling, packaging, and compliance requirements
 - Look for recent changes, updates, or new requirements
 - Be thorough but accurate - cite specific regulatory sections when possible
+- ALWAYS include the direct URL to the source where you found each citation
 
 Return your findings as a JSON object with this structure:
 {
@@ -142,6 +143,7 @@ Return your findings as a JSON object with this structure:
     {
       "requirement": "Description of the requirement",
       "citation": "Regulatory citation if available",
+      "sourceUrl": "Direct URL to the regulation page where this citation can be verified",
       "category": "Category (e.g., 'Required Warnings', 'THC Content', etc.)",
       "effectiveDate": "Date if known, otherwise null"
     }
@@ -153,7 +155,8 @@ Return your findings as a JSON object with this structure:
       "suggestedName": "Rule name",
       "suggestedDescription": "Detailed description",
       "suggestedCategory": "Category",
-      "suggestedCitation": "Citation",
+      "suggestedCitation": "Citation (e.g., 'ARM 37.107.402' or 'Mont. Admin. r. 42.39.314')",
+      "suggestedSourceUrl": "REQUIRED: Direct URL to the official regulation page where this citation can be verified. Must be a real, working URL.",
       "suggestedSeverity": "error" | "warning" | "info",
       "suggestedValidationPrompt": "Prompt for AI validation",
       "reasoning": "Why this change is suggested",
