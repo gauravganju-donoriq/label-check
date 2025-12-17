@@ -27,6 +27,8 @@ interface ComplianceCheckRequest {
     name: string;
     description: string;
   }>;
+  enableGroqVerification?: boolean;
+  stateName?: string;
 }
 
 serve(async (req) => {
@@ -35,14 +37,17 @@ serve(async (req) => {
   }
 
   try {
-    const { complianceCheckId, extractedPanels, rules, customRules }: ComplianceCheckRequest = await req.json();
+    const { complianceCheckId, extractedPanels, rules, customRules, enableGroqVerification, stateName }: ComplianceCheckRequest = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log(`Running compliance check ${complianceCheckId} with ${rules.length} rules and ${customRules.length} custom rules`);
+    const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY');
+    const canVerifyWithGroq = enableGroqVerification && GROQ_API_KEY && stateName;
+
+    console.log(`Running compliance check ${complianceCheckId} with ${rules.length} rules and ${customRules.length} custom rules${canVerifyWithGroq ? ' (with Groq verification)' : ''}`);
 
     // Combine all extracted data for context
     const combinedExtraction = extractedPanels.map(p => ({
@@ -163,6 +168,56 @@ Please analyze each rule against the extracted data and return the compliance re
     
     const overallStatus = failCount > 0 ? 'fail' : warningCount > 0 ? 'warning' : 'pass';
 
+    // Optional: Verify critical failures with Groq web search
+    let verificationResults = null;
+    if (canVerifyWithGroq && failCount > 0) {
+      try {
+        console.log('Verifying critical failures with Groq...');
+        const criticalFailures = results.filter((r: { status: string; ruleId?: string }) => 
+          r.status === 'fail' && rules.find(rule => rule.id === r.ruleId && rule.severity === 'error')
+        );
+        
+        if (criticalFailures.length > 0) {
+          const verifyResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${GROQ_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'compound-beta',
+              messages: [
+                { 
+                  role: 'system', 
+                  content: `You are a cannabis compliance expert. Verify if these compliance failures are accurate based on current ${stateName} regulations. Search for the latest requirements to confirm.`
+                },
+                {
+                  role: 'user',
+                  content: `Verify these compliance failures for ${stateName}:\n${criticalFailures.map((f: { ruleId?: string; explanation?: string }) => {
+                    const rule = rules.find(r => r.id === f.ruleId);
+                    return `- ${rule?.name}: ${f.explanation}`;
+                  }).join('\n')}\n\nAre these failures accurate based on current regulations?`
+                }
+              ],
+              tools: [{ type: 'function', function: { name: 'web_search', description: 'Search web', execute: {} } }]
+            }),
+          });
+
+          if (verifyResponse.ok) {
+            const verifyData = await verifyResponse.json();
+            verificationResults = {
+              verified: true,
+              verificationNote: verifyData.choices?.[0]?.message?.content || 'Verification completed'
+            };
+            console.log('Groq verification completed');
+          }
+        }
+      } catch (verifyError) {
+        console.error('Groq verification error (non-fatal):', verifyError);
+        verificationResults = { verified: false, error: 'Verification unavailable' };
+      }
+    }
+
     return new Response(JSON.stringify({ 
       success: true, 
       results,
@@ -171,7 +226,8 @@ Please analyze each rule against the extracted data and return the compliance re
         warningCount,
         failCount,
         overallStatus
-      }
+      },
+      verification: verificationResults
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

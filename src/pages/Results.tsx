@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -25,6 +27,8 @@ import {
   FileText,
   Image,
   ExternalLink,
+  Info,
+  ShieldAlert,
 } from 'lucide-react';
 
 export default function Results() {
@@ -372,6 +376,49 @@ export default function Results() {
                         <p className="text-xs text-muted-foreground mb-3 truncate">
                           {panel.file_name}
                         </p>
+                        
+                        {/* Confidence indicator */}
+                        {panel.extracted_data && (panel.extracted_data as Record<string, unknown>).extractionConfidence && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="mb-3">
+                                  <div className="flex items-center justify-between text-xs mb-1">
+                                    <span className="text-muted-foreground">Extraction Confidence</span>
+                                    <span className="font-medium">
+                                      {(((panel.extracted_data as Record<string, unknown>).extractionConfidence as Record<string, number>)?.overall * 100 || 90).toFixed(0)}%
+                                    </span>
+                                  </div>
+                                  <Progress 
+                                    value={((panel.extracted_data as Record<string, unknown>).extractionConfidence as Record<string, number>)?.overall * 100 || 90} 
+                                    className="h-1.5"
+                                  />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="text-xs">AI confidence in extracted data accuracy</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+
+                        {/* Flagged for review indicator */}
+                        {panel.extracted_data && (panel.extracted_data as Record<string, unknown>).flaggedForReview && (
+                          <div className="mb-3 p-2 bg-chart-4/10 border border-chart-4/20 rounded-md">
+                            <div className="flex items-center gap-2 text-xs text-chart-4">
+                              <ShieldAlert className="w-3 h-3" />
+                              <span className="font-medium">Flagged for Review</span>
+                            </div>
+                            {(panel.extracted_data as Record<string, unknown>).reviewReasons && (
+                              <ul className="mt-1 text-xs text-muted-foreground list-disc list-inside">
+                                {((panel.extracted_data as Record<string, unknown>).reviewReasons as string[]).map((reason, i) => (
+                                  <li key={i}>{reason}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+
                         {panel.extracted_data && (
                           <details className="text-xs">
                             <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
