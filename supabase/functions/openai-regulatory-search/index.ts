@@ -108,25 +108,27 @@ For each finding, provide the exact regulatory citation (e.g., "ARM 37.107.406")
 
     console.log('Calling OpenAI Responses API with web search...');
 
-    // Use the Responses API with web_search tool
-    const response = await fetch('https://api.openai.com/v1/responses', {
+    // Use Chat Completions API with search-preview model (has web search built-in)
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini-search-preview-2025-03-11',
-        tools: [{
-          type: 'web_search',
+        model: 'gpt-4o-search-preview-2025-03-11',
+        web_search_options: {
           search_context_size: 'high',
           user_location: {
             type: 'approximate',
             country: 'US',
             region: stateAbbreviation,
           }
-        }],
-        input: searchPrompt,
+        },
+        messages: [
+          { role: 'system', content: 'You are a regulatory compliance expert researching cannabis labeling requirements. Always cite your sources with URLs.' },
+          { role: 'user', content: searchPrompt }
+        ],
       }),
     });
 
@@ -149,28 +151,23 @@ For each finding, provide the exact regulatory citation (e.g., "ARM 37.107.406")
     const data = await response.json();
     console.log('OpenAI response received, processing...');
 
-    // Extract the response content and citations
+    // Extract the response content and citations from Chat Completions response
     let responseText = '';
     const citations: Citation[] = [];
 
-    // Process the output array
-    for (const item of data.output || []) {
-      if (item.type === 'message') {
-        for (const content of item.content || []) {
-          if (content.type === 'output_text') {
-            responseText = content.text;
-            
-            // Extract citations from annotations
-            for (const annotation of content.annotations || []) {
-              if (annotation.type === 'url_citation') {
-                citations.push({
-                  url: annotation.url,
-                  title: annotation.title || '',
-                  text: responseText.substring(annotation.start_index, annotation.end_index),
-                });
-              }
-            }
-          }
+    // Chat Completions format: data.choices[0].message.content
+    const message = data.choices?.[0]?.message;
+    if (message) {
+      responseText = message.content || '';
+      
+      // Extract citations from annotations if present
+      for (const annotation of message.annotations || []) {
+        if (annotation.type === 'url_citation') {
+          citations.push({
+            url: annotation.url,
+            title: annotation.title || '',
+            text: annotation.text || '',
+          });
         }
       }
     }
