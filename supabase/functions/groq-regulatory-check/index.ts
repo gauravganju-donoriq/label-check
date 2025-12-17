@@ -56,17 +56,8 @@ async function callGroqCompound(
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
-        ],
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'web_search',
-              description: 'Search the web for current information',
-              execute: {}
-            }
-          }
         ]
+        // compound-beta has built-in web search - no need to specify tools
       }),
     });
 
